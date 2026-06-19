@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cuestionario Diagnóstico — MediKnow</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'core/estilos.css' %}" />
+</head>
+<body>
+
+  <!-- ── Barra de navegación ───────────────────────────── -->
+  <nav class="navbar" role="banner">
+    <a class="navbar-brand" href="#">
+      <div class="logo-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+             stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+          <path d="M2 17l10 5 10-5"/>
+          <path d="M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <span>Medi<em>Know</em></span>
+    </a>
+    <span class="navbar-meta">Sistema de Apoyo al Diagnóstico Médico</span>
+  </nav>
+
+  <!-- ── Contenido principal ───────────────────────────── -->
+  <main class="page-wrapper">
+
+    <header class="page-header">
+      <h1>Cuestionario de síntomas</h1>
+      <p>Marque los síntomas presentes en el paciente y ajuste la intensidad de cada uno.</p>
+    </header>
+
+    <form id="symptom-form" method="POST" action="{% url 'cuestionario' %}" novalidate>
+      {% csrf_token %}
+
+      <!-- Datos del médico y paciente -->
+      <div class="patient-card" role="group" aria-label="Datos de la consulta">
+        <div class="field-group">
+          <label for="doctor_name">Médico responsable</label>
+          <input
+            type="text"
+            id="doctor_name"
+            name="doctor_name"
+            placeholder="Dr. / Dra. Apellido Nombre"
+            value="{{ request.POST.doctor_name|default:'' }}"
+            required
+          />
+        </div>
+        <div class="field-group">
+          <label for="patient_code">Código de paciente</label>
+          <input
+            type="text"
+            id="patient_code"
+            name="patient_code"
+            placeholder="Ej. PAC-2024-001"
+            value="{{ request.POST.patient_code|default:'' }}"
+            required
+          />
+        </div>
+      </div>
+
+      <!-- Listado de síntomas agrupados -->
+      {% if symptoms %}
+        <div class="symptoms-section" role="group" aria-label="Lista de síntomas">
+          <div class="symptoms-section-header">
+            <div class="section-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M9 11l3 3L22 4"/>
+                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+              </svg>
+            </div>
+            <h2>Síntomas disponibles</h2>
+            <span class="symptom-count">{{ symptoms|length }} síntomas</span>
+          </div>
+
+          {% for symptom in symptoms %}
+          <div class="symptom-row" id="row-{{ symptom.pk }}">
+
+            <!-- Cabecera: checkbox + nombre + badge de peso -->
+            <div class="symptom-header">
+              <div class="symptom-checkbox-wrap">
+                <input
+                  type="checkbox"
+                  id="chk-{{ symptom.pk }}"
+                  name="symptom_check_{{ symptom.pk }}"
+                  value="{{ symptom.pk }}"
+                  aria-controls="panel-{{ symptom.pk }}"
+                  {% if request.POST and request.POST|dictsort:"symptom_check_"|length %}
+                    {% if symptom.pk|stringformat:"s" in request.POST.getlist %}checked{% endif %}
+                  {% endif %}
+                />
+                <div class="checkbox-visual" aria-hidden="true">
+                  <!-- checkmark SVG -->
+                  <svg viewBox="0 0 12 10">
+                    <polyline points="1.5 5 4.5 8 10.5 1.5"/>
+                  </svg>
+                </div>
+              </div>
+
+              <div class="symptom-info">
+                <label for="chk-{{ symptom.pk }}" class="symptom-name">{{ symptom.name }}</label>
+                {% if symptom.description %}
+                  <p class="symptom-desc">{{ symptom.description }}</p>
+                {% endif %}
+              </div>
+
+              <!-- Badge de relevancia clínica -->
+              <span class="weight-badge weight-{{ symptom.relevance_level }}"
+                    title="Peso diagnóstico base: {{ symptom.relevance_level }}">
+                {% if symptom.relevance_level == 3 %}Patognomónico{% else %}Menor{% endif %}
+              </span>
+            </div>
+
+            <!-- Panel de intensidad (oculto hasta marcar el checkbox) -->
+            <div class="intensity-panel" id="panel-{{ symptom.pk }}" aria-hidden="true">
+              <div class="intensity-label-row">
+                <span>Intensidad del síntoma</span>
+                <span class="intensity-value-display"
+                      id="val-{{ symptom.pk }}"
+                      aria-live="polite">5</span>
+              </div>
+
+              <input
+                type="range"
+                class="intensity-slider"
+                id="slider-{{ symptom.pk }}"
+                name="intensity_{{ symptom.pk }}"
+                min="1"
+                max="10"
+                step="1"
+                value="5"
+                aria-label="Intensidad de {{ symptom.name }}"
+                aria-valuemin="1"
+                aria-valuemax="10"
+                aria-valuenow="5"
+              />
+
+              <div class="intensity-scale" aria-hidden="true">
+                <span>1 — Leve</span>
+                <span>5 — Moderado</span>
+                <span>10 — Severo</span>
+              </div>
+            </div>
+
+          </div>
+          {% endfor %}
+        </div>
+
+      {% else %}
+        <div class="alert-warning" role="alert">
+          No hay síntomas cargados en la base de datos. Ejecute el script <code>seed.py</code> para poblar la ontología.
+        </div>
+      {% endif %}
+
+      <!-- Botón de envío -->
+      <div class="submit-area">
+        <button type="submit" class="btn-diagnose" id="btn-diagnose">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="M21 21l-4.35-4.35"/>
+            <path d="M11 8v6M8 11h6"/>
+          </svg>
+          Calcular diagnóstico
+        </button>
+        <p class="submit-hint" style="opacity:.5">
+          <span class="selected-count" id="selected-count">0</span> síntoma(s) seleccionado(s)
+        </p>
+      </div>
+
+    </form>
+
+    <!-- ── Sección de resultados ─────────────────────── -->
+    {% if results %}
+    <section class="results-section" id="results-section" aria-label="Resultados del diagnóstico">
+      <h2>Diagnóstico diferencial — resultados</h2>
+
+      {% if results %}
+        {% for ds in results %}
+        <article class="diagnosis-card rank-{{ ds.rank }}" aria-label="Diagnóstico #{{ ds.rank }}">
+
+          <!-- Cabecera de la tarjeta -->
+          <div class="diagnosis-card-header">
+            <div class="rank-badge" aria-label="Posición {{ ds.rank }}">#{{ ds.rank }}</div>
+            <h3 class="diagnosis-name">{{ ds.disease_name }}</h3>
+            <span class="score-pill {% if ds.normalized_score >= 60 %}high{% elif ds.normalized_score >= 35 %}medium{% else %}low{% endif %}"
+                  aria-label="Score {{ ds.normalized_score }} de 100">
+              {{ ds.normalized_score|floatformat:1 }} / 100
+            </span>
+          </div>
+
+          <!-- Barra de score -->
+          <div class="score-bar-wrap" aria-hidden="true">
+            <div class="score-bar-bg">
+              <div class="score-bar-fill" style="width: {{ ds.normalized_score }}%;"></div>
+            </div>
+            <span class="score-text">Score: {{ ds.normalized_score|floatformat:1 }}%</span>
+          </div>
+
+          <!-- Cuerpo: síntomas coincidentes + tratamientos -->
+          <div class="diagnosis-card-body">
+
+            <div class="diagnosis-col">
+              <h4>Síntomas coincidentes</h4>
+              <ul>
+                {% for ms in ds.matched_symptoms %}
+                <li>
+                  {{ ms.symptom_name }}
+                  <span style="margin-left:auto; font-size:.72rem; color: var(--gray-400); white-space:nowrap;">
+                    ×{{ ms.intensity }} = {{ ms.contribution|floatformat:0 }}pts
+                  </span>
+                </li>
+                {% empty %}
+                <li>Sin coincidencias directas.</li>
+                {% endfor %}
+              </ul>
+            </div>
+
+            <div class="diagnosis-col">
+              <h4>Tratamientos sugeridos</h4>
+              <ul>
+                {% for treatment in ds.treatments %}
+                <li>{{ treatment }}</li>
+                {% empty %}
+                <li>Sin tratamientos definidos aún.</li>
+                {% endfor %}
+              </ul>
+            </div>
+
+            {% if ds.clinical_criteria %}
+            <div class="criteria-block">
+              <h4>Criterios clínicos / Derivación</h4>
+              <pre>{{ ds.clinical_criteria }}</pre>
+            </div>
+            {% endif %}
+
+          </div>
+        </article>
+        {% endfor %}
+
+      {% else %}
+        <div class="alert-warning" role="alert">
+          Ningún diagnóstico superó el umbral mínimo de puntuación. Intente con más síntomas o verifique la ontología.
+        </div>
+      {% endif %}
+
+    </section>
+    {% endif %}
+
+  </main>
+
+  <script src="{% static 'core/script.js' %}"></script>
+</body>
+</html>
