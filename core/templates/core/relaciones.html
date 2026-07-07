@@ -1,0 +1,104 @@
+{% extends "core/base.html" %}
+{% block title %}Relaciones — MediKnow{% endblock %}
+{% block content %}
+
+<header class="page-header">
+  <h1>Relaciones Enfermedad ↔ Síntoma / Tratamiento</h1>
+  <p>Define el peso de asociación y las condiciones formales de aplicación.</p>
+</header>
+
+<form method="get" class="form-card" style="grid-template-columns: 1fr; margin-bottom:1.5rem;">
+  <div class="field-group">
+    <label for="id_disease">Selecciona una enfermedad</label>
+    <select id="id_disease" name="disease" onchange="this.form.submit()">
+      <option value="">— Elegir —</option>
+      {% for d in diseases %}
+      <option value="{{ d.pk }}" {% if disease and disease.pk == d.pk %}selected{% endif %}>{{ d.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</form>
+
+{% if success %}<div class="alert-success">{{ success }}</div>{% endif %}
+{% if errors.symptom %}<div class="alert-warning">{{ errors.symptom }}</div>{% endif %}
+{% if errors.treatment %}<div class="alert-warning">{{ errors.treatment }}</div>{% endif %}
+
+{% if disease %}
+<section class="results-section">
+  <h2>Síntomas asociados a "{{ disease.name }}"</h2>
+  <table class="data-table" style="margin-bottom:1.5rem;">
+    <thead><tr><th>Síntoma</th><th>Peso</th><th>Notas</th></tr></thead>
+    <tbody>
+      {% for rel in symptom_relations %}
+      <tr><td>{{ rel.symptom.name }}</td><td>{{ rel.association_weight }}</td><td>{{ rel.notes|default:"—" }}</td></tr>
+      {% empty %}
+      <tr><td colspan="3">Sin síntomas asociados aún.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <form method="post" class="form-card">
+    {% csrf_token %}
+    <input type="hidden" name="disease_id" value="{{ disease.pk }}">
+    <input type="hidden" name="relation_type" value="symptom">
+    <div class="field-group">
+      <label for="id_symptom">Síntoma</label>
+      <select id="id_symptom" name="symptom_id" required>
+        {% for s in available_symptoms %}<option value="{{ s.pk }}">{{ s.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field-group">
+      <label for="id_weight">Peso de asociación</label>
+      <select id="id_weight" name="association_weight">
+        {% for value, label in weight_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field-group" style="grid-column: 1 / -1;">
+      <label for="id_notes">Notas</label>
+      <input type="text" id="id_notes" name="notes">
+    </div>
+    <div style="grid-column: 1 / -1;">
+      <button type="submit" class="btn-diagnose">Asociar síntoma</button>
+    </div>
+  </form>
+
+  <h2 style="margin-top:2rem;">Tratamientos asociados a "{{ disease.name }}"</h2>
+  <table class="data-table" style="margin-bottom:1.5rem;">
+    <thead><tr><th>Tratamiento</th><th>Prioridad</th><th>Condiciones</th></tr></thead>
+    <tbody>
+      {% for rel in treatment_relations %}
+      <tr><td>{{ rel.treatment.name }}</td><td>{{ rel.priority }}</td><td>{{ rel.formal_conditions|truncatewords:12 }}</td></tr>
+      {% empty %}
+      <tr><td colspan="3">Sin tratamientos asociados aún.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <form method="post" class="form-card">
+    {% csrf_token %}
+    <input type="hidden" name="disease_id" value="{{ disease.pk }}">
+    <input type="hidden" name="relation_type" value="treatment">
+    <div class="field-group">
+      <label for="id_treatment">Tratamiento</label>
+      <select id="id_treatment" name="treatment_id" required>
+        {% for t in available_treatments %}<option value="{{ t.pk }}">{{ t.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field-group">
+      <label for="id_priority">Prioridad</label>
+      <input type="number" id="id_priority" name="priority" value="1" min="1">
+    </div>
+    <div class="field-group" style="grid-column: 1 / -1;">
+      <label for="id_formal_conditions">Condiciones formales</label>
+      <textarea id="id_formal_conditions" name="formal_conditions" rows="2" required></textarea>
+    </div>
+    <div style="grid-column: 1 / -1;">
+      <button type="submit" class="btn-diagnose">Asociar tratamiento</button>
+    </div>
+  </form>
+</section>
+{% else %}
+<p style="color:var(--gray-600);">Selecciona una enfermedad arriba para gestionar sus relaciones.</p>
+{% endif %}
+
+{% endblock %}

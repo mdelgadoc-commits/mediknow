@@ -1,0 +1,63 @@
+{% extends "core/base.html" %}
+{% block title %}Tratamientos — MediKnow{% endblock %}
+{% block content %}
+
+<header class="page-header">
+  <h1>Tratamientos</h1>
+  <p>Registro de tratamientos, su tipo y condiciones de aplicación.</p>
+</header>
+
+{% if success %}<div class="alert-success">{{ success }}</div>{% endif %}
+{% if errors.general %}<div class="alert-warning">{{ errors.general }}</div>{% endif %}
+
+<button type="button" class="btn-diagnose"
+        onclick="document.getElementById('treatment-form').classList.toggle('visible')">
+  + Registrar nuevo tratamiento
+</button>
+
+<form method="post" class="form-card collapsible" id="treatment-form" style="margin-top:1.25rem;">
+  {% csrf_token %}
+  <div class="field-group">
+    <label for="id_name">Nombre</label>
+    <input type="text" id="id_name" name="name" value="{{ form_values.name }}" required>
+    {% if errors.name %}<span class="field-error">{{ errors.name }}</span>{% endif %}
+  </div>
+  <div class="field-group">
+    <label for="id_type">Tipo de tratamiento</label>
+    <select id="id_type" name="treatment_type">
+      {% for value, label in type_choices %}
+      <option value="{{ value }}" {% if form_values.treatment_type == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field-group" style="grid-column: 1 / -1;">
+    <label for="id_conditions">Condiciones de aplicación</label>
+    <textarea id="id_conditions" name="application_conditions" rows="3" required>{{ form_values.application_conditions }}</textarea>
+    {% if errors.general %}<span class="field-error"></span>{% endif %}
+  </div>
+  <div style="grid-column: 1 / -1;">
+    <button type="submit" class="btn-diagnose">Guardar tratamiento</button>
+  </div>
+</form>
+
+<section class="results-section">
+  <h2>Tratamientos registrados ({{ treatments|length }})</h2>
+  <table class="data-table">
+    <thead>
+      <tr><th>Nombre</th><th>Tipo</th><th>Condiciones</th></tr>
+    </thead>
+    <tbody>
+      {% for treatment in treatments %}
+      <tr>
+        <td>{{ treatment.name }}</td>
+        <td>{{ treatment.get_treatment_type_display }}</td>
+        <td>{{ treatment.application_conditions|truncatewords:15 }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="3">Aún no hay tratamientos registrados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% endblock %}

@@ -613,3 +613,200 @@ input[type="range"].intensity-slider:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+/* ─── Navbar: acciones a la derecha ───────────────────────── */
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.navbar-logout {
+  font-family: var(--font-ui);
+  font-size: .8rem;
+  font-weight: 500;
+  color: var(--blue-200);
+  background: transparent;
+  border: 1px solid rgba(189, 215, 245, .3);
+  border-radius: var(--radius-sm);
+  padding: .4rem .9rem;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.navbar-logout:hover {
+  background: rgba(255, 255, 255, .08);
+  color: var(--white);
+  border-color: rgba(189, 215, 245, .5);
+}
+.navbar-logout:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* ─── Grid del menú principal ─────────────────────────────── */
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+.menu-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .5rem;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: var(--shadow-card);
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.menu-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(10,37,64,.12);
+  border-color: var(--blue-200);
+}
+.menu-card:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  border-color: var(--blue-500);
+}
+
+.menu-card-icon {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: var(--radius-md);
+  background: var(--blue-50);
+  color: var(--blue-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.menu-card-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.menu-card h2 {
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--gray-900);
+  letter-spacing: -.2px;
+}
+
+.menu-card p {
+  font-size: .85rem;
+  color: var(--gray-600);
+  line-height: 1.5;
+  flex: 1;
+}
+
+.menu-card-cta {
+  font-family: var(--font-ui);
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--blue-700);
+  margin-top: .25rem;
+  transition: gap .15s;
+}
+.menu-card:hover .menu-card-cta {
+  color: var(--blue-900);
+}
+
+@media (max-width: 640px) {
+  .menu-grid { grid-template-columns: 1fr; }
+c}
+
+/* ─── Tarjeta de formulario generica ──────────────────────── */
+.form-card {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow-card);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.form-card.collapsible:not(.visible) { display: none; }
+.form-card .field-group {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+}
+.form-card label {
+  font-family: var(--font-ui);
+  font-size: .75rem;
+  font-weight: 500;
+  color: var(--gray-400);
+  text-transform: uppercase;
+  letter-spacing: .6px;
+}
+.form-card input,
+.form-card textarea,
+.form-card select {
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  padding: .55rem .75rem;
+  font-size: .9rem;
+  font-family: var(--font-body);
+  color: var(--gray-900);
+  background: var(--gray-50);
+  transition: border-color .15s, box-shadow .15s;
+}
+.form-card input:focus,
+.form-card textarea:focus,
+.form-card select:focus {
+  outline: none;
+  border-color: var(--blue-500);
+  background: var(--white);
+  box-shadow: var(--shadow-focus);
+}
+.field-error {
+  font-size: .75rem;
+  color: var(--red-600);
+}
+.alert-success {
+  background: var(--green-50);
+  border: 1px solid #BBF7D0;
+  border-radius: var(--radius-md);
+  padding: .85rem 1.25rem;
+  font-size: .88rem;
+  color: #14532D;
+  margin-bottom: 1.25rem;
+}
+
+/* ─── Tabla de datos ───────────────────────────────────────── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+.data-table th {
+  font-family: var(--font-ui);
+  font-size: .72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--gray-400);
+  text-align: left;
+  padding: .75rem 1rem;
+  background: var(--gray-50);
+  border-bottom: 1px solid var(--gray-200);
+}
+.data-table td {
+  padding: .75rem 1rem;
+  font-size: .88rem;
+  color: var(--gray-900);
+  border-bottom: 1px solid var(--gray-200);
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: var(--gray-50); }

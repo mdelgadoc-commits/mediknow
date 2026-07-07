@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registro médico — MediKnow</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'core/estilos.css' %}" />
+</head>
+<body>
+  <main class="page-wrapper" style="max-width: 480px; margin-top: 4rem;">
+    <header class="page-header">
+      <h1>Crear cuenta de médico</h1>
+      <p>Regístrate para acceder a MediKnow.</p>
+    </header>
+
+    {% if error %}<div class="alert-warning">{{ error }}</div>{% endif %}
+
+    <form method="post" class="form-card" style="grid-template-columns: 1fr;">
+      {% csrf_token %}
+      <div class="field-group">
+        <label for="id_username">Usuario</label>
+        <input type="text" id="id_username" name="username" required>
+      </div>
+      <div class="field-group">
+        <label for="id_first_name">Nombre</label>
+        <input type="text" id="id_first_name" name="first_name">
+      </div>
+      <div class="field-group">
+        <label for="id_last_name">Apellido</label>
+        <input type="text" id="id_last_name" name="last_name">
+      </div>
+      <div class="field-group">
+        <label for="id_password1">Contraseña</label>
+        <input type="password" id="id_password1" name="password1" required>
+      </div>
+      <div class="field-group">
+        <label for="id_password2">Confirmar contraseña</label>
+        <input type="password" id="id_password2" name="password2" required>
+      </div>
+      <div>
+        <button type="submit" class="btn-diagnose">Crear cuenta</button>
+      </div>
+    </form>
+    <p style="margin-top:1rem; font-size:.85rem;">
+      <a href="{% url 'login' %}">¿Ya tienes cuenta? Inicia sesión</a>
+    </p>
+  </main>
+</body>
+</html>

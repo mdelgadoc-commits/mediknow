@@ -1,0 +1,69 @@
+{% extends "core/base.html" %}
+{% block title %}Enfermedades — MediKnow{% endblock %}
+{% block content %}
+
+<header class="page-header">
+  <h1>Enfermedades</h1>
+  <p>Registro de enfermedades validadas contra CIE-10, CIE-11 y REUNIS.</p>
+</header>
+
+{% if success %}
+  <div class="alert-success">{{ success }}</div>
+{% endif %}
+{% if errors.general %}
+  <div class="alert-warning">{{ errors.general }}</div>
+{% endif %}
+
+<button type="button" class="btn-diagnose" id="toggle-form-btn"
+        onclick="document.getElementById('disease-form').classList.toggle('visible')">
+  + Registrar nueva enfermedad
+</button>
+
+<form method="post" class="form-card collapsible" id="disease-form" style="margin-top:1.25rem;">
+  {% csrf_token %}
+  <div class="field-group">
+    <label for="id_name">Nombre</label>
+    <input type="text" id="id_name" name="name" value="{{ form_values.name }}" required>
+    {% if errors.name %}<span class="field-error">{{ errors.name }}</span>{% endif %}
+  </div>
+  <div class="field-group">
+    <label for="id_category">Categoría médica</label>
+    <input type="text" id="id_category" name="category" value="{{ form_values.category }}" required>
+    {% if errors.category %}<span class="field-error">{{ errors.category }}</span>{% endif %}
+  </div>
+  <div class="field-group" style="grid-column: 1 / -1;">
+    <label for="id_description">Descripción</label>
+    <textarea id="id_description" name="description" rows="3" required>{{ form_values.description }}</textarea>
+  </div>
+  <div style="grid-column: 1 / -1;">
+    <button type="submit" class="btn-diagnose">Guardar enfermedad</button>
+  </div>
+</form>
+
+<section class="results-section">
+  <h2>Enfermedades registradas ({{ diseases|length }})</h2>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Categoría</th>
+        <th>CIE-10</th>
+        <th>CIE-11</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for disease in diseases %}
+      <tr>
+        <td>{{ disease.name }}</td>
+        <td>{{ disease.category.name }}</td>
+        <td>{{ disease.cie10_code|default:"—" }}</td>
+        <td>{{ disease.cie11_code|default:"—" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4">Aún no hay enfermedades registradas.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% endblock %}

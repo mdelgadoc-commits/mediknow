@@ -1,0 +1,43 @@
+{% extends "core/base.html" %}
+{% block title %}Inconsistencias — MediKnow{% endblock %}
+{% block content %}
+
+<header class="page-header">
+  <h1>Reporte de inconsistencias</h1>
+  <p>Síntomas huérfanos, enfermedades sin tratamiento y otras inconsistencias del modelo.</p>
+</header>
+
+{% if total_issues == 0 %}
+  <div class="alert-success">No se detectaron inconsistencias en la ontología. Todo el modelo está consistente.</div>
+{% else %}
+  <div class="alert-warning">Se detectaron {{ total_issues }} inconsistencia(s) en total.</div>
+{% endif %}
+
+<section class="results-section">
+  {% for key, items in inconsistencias.items %}
+  <div class="diagnosis-card" style="margin-bottom:1rem;">
+    <div class="diagnosis-card-header">
+      <span class="diagnosis-name">{{ key }}</span>
+      <span class="score-pill {% if items %}medium{% else %}high{% endif %}">{{ items|length }}</span>
+    </div>
+    <div class="diagnosis-card-body" style="grid-template-columns: 1fr;">
+      {% if items %}
+        <ul>
+          {% for item in items %}<li>{{ item }}</li>{% endfor %}
+        </ul>
+      {% else %}
+        <p style="color:var(--green-600); font-size:.85rem;">✓ Sin inconsistencias en esta categoría.</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</section>
+
+<details style="margin-top:1.5rem;">
+  <summary style="cursor:pointer; font-family:var(--font-ui); font-weight:600; color:var(--blue-700);">
+    Ver reporte en texto estructurado
+  </summary>
+  <pre style="background:var(--gray-50); border:1px solid var(--gray-200); border-radius:var(--radius-md); padding:1rem; margin-top:.75rem; white-space:pre-wrap; font-size:.8rem;">{{ reporte_texto }}</pre>
+</details>
+
+{% endblock %}

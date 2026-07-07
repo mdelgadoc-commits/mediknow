@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}MediKnow{% endblock %}</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'core/estilos.css' %}" />
+</head>
+<body>
+
+  <nav class="navbar" role="banner">
+    <a class="navbar-brand" href="{% url 'menu' %}">
+      <div class="logo-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+             stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+          <path d="M2 17l10 5 10-5"/>
+          <path d="M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <span>Medi<em>Know</em></span>
+    </a>
+    <div class="navbar-right">
+      <span class="navbar-meta">{{ request.user.get_full_name|default:request.user.username }}</span>
+      <form action="{% url 'logout' %}" method="post" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="navbar-logout">Salir</button>
+      </form>
+    </div>
+  </nav>
+
+  <main class="page-wrapper">
+    {% block content %}{% endblock %}
+  </main>
+
+</body>
+</html>

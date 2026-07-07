@@ -1,0 +1,64 @@
+{% extends "core/base.html" %}
+{% block title %}Síntomas — MediKnow{% endblock %}
+{% block content %}
+
+<header class="page-header">
+  <h1>Síntomas</h1>
+  <p>Registro de síntomas usados por el motor de inferencia, con su nivel de relevancia diagnóstica.</p>
+</header>
+
+{% if success %}<div class="alert-success">{{ success }}</div>{% endif %}
+{% if errors.general %}<div class="alert-warning">{{ errors.general }}</div>{% endif %}
+
+<button type="button" class="btn-diagnose"
+        onclick="document.getElementById('symptom-form').classList.toggle('visible')">
+  + Registrar nuevo síntoma
+</button>
+
+<form method="post" class="form-card collapsible" id="symptom-form" style="margin-top:1.25rem;">
+  {% csrf_token %}
+  <div class="field-group">
+    <label for="id_name">Nombre</label>
+    <input type="text" id="id_name" name="name" value="{{ form_values.name }}" required>
+    {% if errors.name %}<span class="field-error">{{ errors.name }}</span>{% endif %}
+  </div>
+  <div class="field-group">
+    <label for="id_relevance">Nivel de relevancia</label>
+    <select id="id_relevance" name="relevance_level">
+      {% for value, label in relevance_choices %}
+      <option value="{{ value }}" {% if form_values.relevance_level == value|stringformat:"s" %}selected{% endif %}>
+        {{ label }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field-group" style="grid-column: 1 / -1;">
+    <label for="id_description">Descripción</label>
+    <textarea id="id_description" name="description" rows="3">{{ form_values.description }}</textarea>
+  </div>
+  <div style="grid-column: 1 / -1;">
+    <button type="submit" class="btn-diagnose">Guardar síntoma</button>
+  </div>
+</form>
+
+<section class="results-section">
+  <h2>Síntomas registrados ({{ symptoms|length }})</h2>
+  <table class="data-table">
+    <thead>
+      <tr><th>Nombre</th><th>Descripción</th><th>Relevancia</th></tr>
+    </thead>
+    <tbody>
+      {% for symptom in symptoms %}
+      <tr>
+        <td>{{ symptom.name }}</td>
+        <td>{{ symptom.description|default:"—" }}</td>
+        <td>{{ symptom.get_relevance_level_display }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="3">Aún no hay síntomas registrados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+{% endblock %}
