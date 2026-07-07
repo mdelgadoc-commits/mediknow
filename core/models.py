@@ -28,6 +28,9 @@ class Disease(models.Model):
     clinical_criteria = models.TextField(blank=True, verbose_name="Criterios clinicos / notas")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    cie10_code = models.CharField(max_length=20, blank=True, verbose_name="Codigo CIE-10")
+    cie11_code = models.CharField(max_length=20, blank=True, verbose_name="Codigo CIE-11")
+    reunis_capitulo = models.CharField(max_length=200, blank=True, verbose_name="Capitulo REUNIS")
 
     class Meta:
         verbose_name = "Enfermedad"
@@ -176,7 +179,14 @@ class Patient(models.Model):
     def __str__(self):
         return f"{self.full_name} ({self.code})"
 
-
+    def get_all_allergies_display(self) -> list[str]:
+        """Devuelve nombres de alergias registradas (catalogo + texto libre)."""
+        names = [a.name for a in self.allergies.all()]
+        if self.other_allergies.strip():
+            names.extend(
+                part.strip() for part in self.other_allergies.split(",") if part.strip()
+            )
+        return names
 class ClinicalCase(models.Model):
     doctor_name = models.CharField(max_length=200, verbose_name="Medico responsable")
     patient_code = models.CharField(max_length=50, verbose_name="Codigo de paciente")
