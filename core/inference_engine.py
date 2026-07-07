@@ -130,6 +130,102 @@ class InferenceEngine:
 
         return results
 
+def format_query_report(results: list[dict], filters: dict) -> str:
+    """
+    Formatea el resultado de una consulta avanzada (combinación de
+    síntomas, enfermedades y/o tratamientos) como texto estructurado.
+
+    Args:
+        results: lista de dicts con las llaves
+            "disease", "symptom_relations", "treatment_relations",
+            "matched_symptom_ids", "matched_treatment_ids"
+            (ver core.views.consultas_avanzadas).
+        filters: resumen legible de los filtros aplicados.
+    """
+    from datetime import datetime
+
+    now = datetime.now().strftime("%d/%m/%Y %H:%M")
+    sep = "═" * 64
+    lines = [
+        sep,
+        "  REPORTE DE CONSULTA AVANZADA",
+        "  MediKnow — Sistema de Gestión del Conocimiento Médico",
+        sep,
+        f"  Fecha y hora   : {now}",
+        "",
+        "─" * 64,
+        "  FILTROS APLICADOS",
+        "─" * 64,
+    ]
+
+    filtros_aplicados = 0
+
+    if filters.get("category"):
+        lines.append(f"  • Categoría médica          : {filters['category']}")
+        filtros_aplicados += 1
+
+    symptoms = filters.get("symptoms")
+    if symptoms:
+        modo = "TODOS" if filters.get("symptom_mode") == "all" else "ALGUNO"
+        nombres = ", ".join(s.name for s in symptoms)
+        lines.append(f"  • Síntomas ({modo})             : {nombres}")
+        filtros_aplicados += 1
+
+    treatments = filters.get("treatments")
+    if treatments:
+        modo_t = "TODOS" if filters.get("treatment_mode") == "all" else "ALGUNO"
+        nombres_t = ", ".join(t.name for t in treatments)
+        lines.append(f"  • Tratamientos ({modo_t})       : {nombres_t}")
+        filtros_aplicados += 1
+
+    if filters.get("min_weight"):
+        lines.append(f"  • Peso de asociación mínimo : {filters['min_weight']}")
+        filtros_aplicados += 1
+
+    if filtros_aplicados == 0:
+        lines.append("  • (sin filtros — se muestran todas las enfermedades registradas)")
+
+    lines.append("")
+    lines.append("─" * 64)
+    lines.append(f"  RESULTADOS ({len(results)} enfermedad(es) encontrada(s))")
+    lines.append("─" * 64)
+
+    if not results:
+        lines.append("  ⚠ No se encontraron enfermedades que cumplan los filtros indicados.")
+        lines.append("    Pruebe ampliar la búsqueda (modo ALGUNO en vez de TODOS, menos filtros, etc.).")
+    else:
+        for item in results:
+            disease = item["disease"]
+            lines.append(f"\n  ┌─ {disease.name}  [{disease.category.name}]")
+            if disease.cie10_code or disease.cie11_code:
+                lines.append(
+                    f"  │  CIE-10: {disease.cie10_code or '—'}   CIE-11: {disease.cie11_code or '—'}"
+                )
+            lines.append("  │")
+            lines.append("  │  Síntomas asociados (★ = coincide con la búsqueda):")
+            if item["symptom_relations"]:
+                for rel in item["symptom_relations"]:
+                    marca = "★" if rel.symptom_id in item["matched_symptom_ids"] else "•"
+                    lines.append(f"  │    {marca} {rel.symptom.name} (peso {rel.association_weight})")
+            else:
+                lines.append("  │    (sin síntomas asociados)")
+            lines.append("  │")
+            lines.append("  │  Tratamientos asociados (★ = coincide con la búsqueda):")
+            if item["treatment_relations"]:
+                for rel in item["treatment_relations"]:
+                    marca = "★" if rel.treatment_id in item["matched_treatment_ids"] else "•"
+                    lines.append(f"  │    {marca} [{rel.priority}ª línea] {rel.treatment.name}")
+            else:
+                lines.append("  │    (sin tratamientos asociados)")
+            lines.append("  └" + "─" * 62)
+
+    lines.append("")
+    lines.append(sep)
+    lines.append("  FIN DEL REPORTE — MediKnow")
+    lines.append(sep)
+    return "\n".join(lines)
+
+
 def check_inconsistencies() -> dict[str, list[str]]:
     """
     Detecta inconsistencias en la ontología médica almacenada en la BD.
