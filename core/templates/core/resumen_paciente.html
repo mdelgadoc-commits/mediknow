@@ -1,0 +1,25 @@
+{% extends 'core/base.html' %}
+{% block content %}
+<div class="page-header" style="text-align: center; margin-bottom: 30px;">
+    <h2 style="color: #2e7d32;">¡Paciente Registrado Exitosamente!  </h2>
+    <p>El modelo clínico ha procesado los datos de manera correcta.</p>
+</div>
+
+<div class="card" style="max-width: 600px; margin: 0 auto 24px auto; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; background: white;">
+    <h3 style="margin-top: 0; color: #1e3a8a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">Datos del Paciente</h3>
+    <p><b>Nombre Completo:</b> {{ paciente.full_name }}</p>
+    <p><b>Código/ID:</b> {{ paciente.code }}</p>
+    <p><b>Edad:</b> {{ paciente.age }} años</p>
+    <p><b>Sexo:</b> {{ paciente.sex }}</p>
+    <p><b>Antecedentes Médicos:</b> {{ paciente.medical_background|default:"Ninguno" }}</p>
+</div>
+
+<div style="text-align: center; margin-top: 20px;">
+    <a href="{% url 'exportar_reporte' %}" style="display: inline-block; background-color: #1e3a8a; color: white; padding: 12px 24px; font-size: 1.1rem; border-radius: 6px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        📥 Descargar Reporte Clínico en PDF (A Color)
+    </a>
+    
+    <br><br>
+    <a href="{% url 'menu' %}" style="color: #64748b; text-decoration: none;">Volver al Menú Principal</a>
+</div>
+{% endblock %}

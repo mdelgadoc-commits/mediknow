@@ -83,8 +83,14 @@ def registro_paciente(request):
                 selected_ids.append(allergy.pk)
         if selected_ids:
             patient.allergies.set(selected_ids)
-        context["success"] = full_name + " (" + code + ")"
+
+        context["success"] = f"{full_name} ({code})"
         context["patient_id"] = patient.pk
+        
+        # 1. Si el formulario fue exitoso (POST), mostramos el resumen interactivo de una vez:
+        return render(request, "core/resumen_paciente.html", {"paciente": patient})
+
+    # 2. Si el médico solo está entrando a ver el formulario vacío (GET), le mostramos el formulario:
     return render(request, "core/registro_paciente.html", context)
 
 
@@ -230,6 +236,7 @@ def enfermedades(request):
                     name=entry["name"],
                     description=description,
                     category=medical_category,
+
                     cie10_code=entry["cie10"],
                     cie11_code=entry["cie11"],
                     reunis_capitulo=entry["reunis_capitulo"],
@@ -516,3 +523,148 @@ def doctores(request):
     # Trae a todos los médicos registrados (User) en el sistema de manera limpia
     lista_doctores = User.objects.all().order_by('username')
     return render(request, 'core/doctores.html', {'doctores': lista_doctores})
+
+# =====================================================================
+# EXPORTACIÓN DE REPORTES EN FORMATO PDF ESTRUCTURADO (A COLOR)
+# =====================================================================
+from django.http import HttpResponse
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+
+def exportar_reporte(request):
+    # 1. Crear respuesta HTTP tipo PDF
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="reporte_inconsistencias_mediknow.pdf"'
+
+    # 2. Configurar el lienzo básico
+    doc = SimpleDocTemplate(response, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
+    story = []
+
+    # 3. Definir la paleta de colores clínicos estructurados
+    COLOR_PRIMARY = colors.HexColor("#1e3a8a")    # Azul Oscuro Corporativo
+    COLOR_ALERT_RED = colors.HexColor("#991b1b")  # Rojo Alerta Crítica (Huérfanos)
+    COLOR_ALERT_WARN = colors.HexColor("#9a3412") # Naranja Alerta Media
+    COLOR_BG_LIGHT = colors.HexColor("#f8fafc")   # Fondo gris claro sutil
+    COLOR_TEXT = colors.HexColor("#334155")       # Texto principal
+
+    styles = getSampleStyleSheet()
+    
+    title_style = ParagraphStyle('TitleStyle', parent=styles['Heading1'], fontSize=20, textColor=COLOR_PRIMARY, spaceAfter=4)
+    subtitle_style = ParagraphStyle('SubTitleStyle', parent=styles['Normal'], fontSize=10, textColor=colors.HexColor("#64748b"), spaceAfter=18)
+    heading_style = ParagraphStyle('HeadingStyle', parent=styles['Heading2'], fontSize=12, textColor=COLOR_PRIMARY, spaceBefore=12, spaceAfter=6)
+    body_style = ParagraphStyle('BodyStyle', parent=styles['Normal'], fontSize=9.5, textColor=COLOR_TEXT, leading=14)
+    alert_red_style = ParagraphStyle('RedAlert', parent=styles['Normal'], fontSize=9.5, textColor=COLOR_ALERT_RED, fontName="Helvetica-Bold")
+    alert_warn_style = ParagraphStyle('WarnAlert', parent=styles['Normal'], fontSize=9.5, textColor=COLOR_ALERT_WARN)
+
+    # Encabezado del PDF estructurado
+    story.append(Paragraph("MediKnow — Sistema de Inferencia Clínica", title_style))
+    story.append(Paragraph("REPORTE DE INCONSISTENCIAS DEL MODELO DE CONOCIMIENTO", subtitle_style))
+    story.append(Spacer(1, 5))
+
+    # Mapeo de relaciones dinámicas basado en tus modelos de Django
+    from .models import Disease, Symptom, Treatment
+    
+    sintomas_huerfanos = Symptom.objects.none()
+    if hasattr(Symptom, 'enfermedades'): sintomas_huerfanos = Symptom.objects.filter(enfermedades__isnull=True)
+    elif hasattr(Symptom, 'diseases'): sintomas_huerfanos = Symptom.objects.filter(diseases__isnull=True)
+
+    tratamientos_huerfanos = Treatment.objects.none()
+    if hasattr(Treatment, 'enfermedades'): tratamientos_huerfanos = Treatment.objects.filter(enfermedades__isnull=True)
+    elif hasattr(Treatment, 'diseases'): tratamientos_huerfanos = Treatment.objects.filter(diseases__isnull=True)
+
+    enfermedades_sin_sintomas = Disease.objects.none()
+    if hasattr(Disease, 'sintomas'): enfermedades_sin_sintomas = Disease.objects.filter(sintomas__isnull=True)
+    elif hasattr(Disease, 'symptoms'): enfermedades_sin_sintomas = Disease.objects.filter(symptoms__isnull=True)
+
+    enfermedades_sin_tratamiento = Disease.objects.none()
+    if hasattr(Disease, 'tratamientos'): enfermedades_sin_tratamiento = Disease.objects.filter(tratamientos__isnull=True)
+    elif hasattr(Disease, 'treatments'): enfermedades_sin_tratamiento = Disease.objects.filter(treatments__isnull=True)
+
+    def generar_tabla_reporte(lista_items, tipo_alerta):
+        data = [[Paragraph("<b>ID</b>", body_style), Paragraph("<b>Detalle de la Inconsistencia Detectada</b>", body_style)]]
+        style_elegido = alert_red_style if tipo_alerta == "red" else alert_warn_style
+        
+        for item in lista_items:
+            nombre_item = getattr(item, 'name', getattr(item, 'full_name', 'Elemento Clínico'))
+            data.append([
+                Paragraph(str(item.id), body_style),
+                Paragraph(f"⚠ INCONSISTENCIA: '{nombre_item}' (ID: {item.id})", style_elegido)
+            ])
+        
+        t = Table(data, colWidths=[60, 470])
+        t.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#e2e8f0")),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, COLOR_BG_LIGHT]),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+        ]))
+        return t
+
+    # Estructuración visual de categorías
+    story.append(Paragraph(f"▶ Síntomas sin enfermedad asociada ({sintomas_huerfanos.count()})", heading_style))
+    if sintomas_huerfanos.exists(): story.append(generar_tabla_reporte(sintomas_huerfanos, "warn"))
+    else: story.append(Paragraph("✓ Sin inconsistencias en esta categoría.", body_style))
+    story.append(Spacer(1, 8))
+
+    story.append(Paragraph(f"▶ Tratamientos sin enfermedad asociada ({tratamientos_huerfanos.count()})", heading_style))
+    if tratamientos_huerfanos.exists(): story.append(generar_tabla_reporte(tratamientos_huerfanos, "red"))
+    else: story.append(Paragraph("✓ Sin inconsistencias en esta categoría.", body_style))
+    story.append(Spacer(1, 8))
+
+    story.append(Paragraph(f"▶ Enfermedades sin síntomas definidos ({enfermedades_sin_sintomas.count()})", heading_style))
+    if enfermedades_sin_sintomas.exists(): story.append(generar_tabla_reporte(enfermedades_sin_sintomas, "warn"))
+    else: story.append(Paragraph("✓ Sin inconsistencias en esta categoría.", body_style))
+    story.append(Spacer(1, 8))
+
+    story.append(Paragraph(f"▶ Enfermedades sin tratamiento asignado ({enfermedades_sin_tratamiento.count()})", heading_style))
+    if enfermedades_sin_tratamiento.exists(): story.append(generar_tabla_reporte(enfermedades_sin_tratamiento, "warn"))
+    else: story.append(Paragraph("✓ Sin inconsistencias en esta categoría.", body_style))
+        
+    doc.build(story)
+    return response
+
+def exportar_reporte_real(request):
+    # Reemplazo de seguridad para mapear tus tablas reales de Inconsistencias
+    from django.http import HttpResponse
+    from reportlab.lib.pagesizes import letter
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from .models import Disease, Symptom, Treatment
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="reporte_inconsistencias_mediknow.pdf"'
+    doc = SimpleDocTemplate(response, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
+    story = []
+
+    # Estilos
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle('TitleStyle', parent=styles['Heading1'], fontSize=20, textColor=colors.HexColor("#1e3a8a"))
+    heading_style = ParagraphStyle('HeadingStyle', parent=styles['Heading2'], fontSize=12, textColor=colors.HexColor("#1e3a8a"), spaceBefore=10)
+    body_style = ParagraphStyle('BodyStyle', parent=styles['Normal'], fontSize=9.5)
+    alert_style = ParagraphStyle('Alert', parent=styles['Normal'], fontSize=9.5, textColor=colors.HexColor("#991b1b"))
+
+    story.append(Paragraph("MediKnow — Sistema de Inferencia Clínica", title_style))
+    story.append(Paragraph("REPORTE DE INCONSISTENCIAS DETECTADAS", heading_style))
+    story.append(Spacer(1, 10))
+
+    # Consultas explícitas buscando campos vacíos en las relacionesManyToMany de tu modelo
+    enfermedades_sin_sintomas = Disease.objects.filter(symptoms__isnull=True)
+    enfermedades_sin_tratamiento = Disease.objects.filter(treatments__isnull=True)
+    tratamientos_huerfanos = Treatment.objects.filter(disease__isnull=True)
+
+    # Añadir Enfermedades sin Síntomas
+    story.append(Paragraph(f"▶ Enfermedades sin síntomas definidos ({enfermedades_sin_sintomas.count()})", heading_style))
+    for enf in enfermedades_sin_sintomas:
+        story.append(Paragraph(f"⚠ ENFERMEDAD SIN SÍNTOMAS: '{enf.name}' (ID: {enf.id})", alert_style))
+
+    # Añadir Enfermedades sin Tratamiento
+    story.append(Paragraph(f"▶ Enfermedades sin tratamiento asignado ({enfermedades_sin_tratamiento.count()})", heading_style))
+    for enf in enfermedades_sin_tratamiento:
+        story.append(Paragraph(f"⚠ ENFERMEDAD SIN TRATAMIENTO: '{enf.name}' (ID: {enf.id})", alert_style))
+
+    doc.build(story)
+    return response
