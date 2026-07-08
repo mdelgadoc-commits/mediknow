@@ -1,0 +1,15 @@
+
+/* Estilo para enlace Volver al menú */
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--blue-700);
+    text-decoration: none;
+    font-weight: 500;
+    margin-bottom: 15px;
+    transition: opacity 0.2s;
+}
+.back-link:hover {
+    opacity: 0.8;
+}

@@ -1,0 +1,37 @@
+{% extends 'core/base.html' %}
+{% block content %}
+<div class="page-header">
+    <h2>Listado de Mis Pacientes</h2>
+    <p>Administración y consulta de pacientes asignados a tu perfil.</p>
+</div>
+
+<div class="card" style="border: 1px solid var(--border-color, #e2e8f0); padding: 24px; border-radius: 8px; background: white; margin-top: 20px;">
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="border-bottom: 2px solid var(--border-color, #e2e8f0);">
+                <th style="padding: 12px; text-align: left;">Código / ID</th>
+                <th style="padding: 12px; text-align: left;">Nombre Completo</th>
+                <th style="padding: 12px; text-align: left;">Edad</th>
+                <th style="padding: 12px; text-align: center;">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for paciente in pacientes %}
+            <tr style="border-bottom: 1px solid var(--border-color, #e2e8f0);">
+                <!-- Comunicación directa mediante las propiedades exactas de tu modelo Patient -->
+                <td style="padding: 12px; font-family: monospace;">{{ paciente.code }}</td>
+                <td style="padding: 12px; font-weight: bold;">{{ paciente.full_name }}</td>
+                <td style="padding: 12px;">{{ paciente.age }} años ({% if paciente.sex == 'M' %}Masc{% else %}Fem{% endif %})</td>
+                <td style="padding: 12px; text-align: center;">
+                    <a href="{% url 'cuestionario' %}?paciente_id={{ paciente.pk }}" style="display: inline-block; background-color: #1d4ed8; color: white; padding: 8px 14px; border-radius: 6px; text-decoration: none; font-size: 0.85rem; font-weight: 600;">Evaluar Síntomas →</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" style="padding: 24px; text-align: center; color: #6c757d;">No tienes pacientes registrados bajo tu autoría.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

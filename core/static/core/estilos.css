@@ -810,3 +810,114 @@ c}
 }
 .data-table tr:last-child td { border-bottom: none; }
 .data-table tr:hover td { background: var(--gray-50); }
+
+/* Estilo para enlace Volver al menú */
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--blue-700, #1d4ed8);
+    text-decoration: none;
+    font-weight: 500;
+    margin-bottom: 20px;
+    transition: opacity 0.2s;
+}
+.back-link:hover {
+    opacity: 0.8;
+}
+
+/* Mejoras de Botones Intuitivos */
+.card-link {
+    display: inline-block !important;
+    text-align: center;
+    background-color: var(--blue-700, #1d4ed8);
+    color: white !important;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    margin-top: auto;
+    transition: background-color 0.2s, transform 0.1s;
+    border: 2px solid var(--blue-700, #1d4ed8);
+}
+
+.card-link:hover {
+    background-color: #1e40af; /* Azul más oscuro al pasar el mouse */
+    border-color: #1e40af;
+    transform: translateY(-1px);
+}
+
+.card-link:active {
+    transform: translateY(0);
+}
+
+/* Rediseño del Botón Retroceder */
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #f0f4ff;
+    color: var(--blue-700, #1d4ed8) !important;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-decoration: none;
+    margin-bottom: 24px;
+    border: 2px solid #dbeafe; /* Borde sutil */
+    transition: all 0.2s;
+}
+
+.back-link:hover {
+    background-color: #e0e7ff;
+    border-color: var(--blue-700, #1d4ed8);
+}
+
+/* Mejoras de Botones Intuitivos */
+.card-link {
+    display: inline-block !important;
+    text-align: center;
+    background-color: var(--blue-700, #1d4ed8);
+    color: white !important;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    margin-top: auto;
+    transition: background-color 0.2s, transform 0.1s;
+    border: 2px solid var(--blue-700, #1d4ed8);
+}
+
+.card-link:hover {
+    background-color: #1e40af; /* Azul más oscuro al pasar el mouse */
+    border-color: #1e40af;
+    transform: translateY(-1px);
+}
+
+.card-link:active {
+    transform: translateY(0);
+}
+
+/* Rediseño del Botón Retroceder */
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #f0f4ff;
+    color: var(--blue-700, #1d4ed8) !important;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-decoration: none;
+    margin-bottom: 24px;
+    border: 2px solid #dbeafe; /* Borde sutil */
+    transition: all 0.2s;
+}
+
+.back-link:hover {
+    background-color: #e0e7ff;
+    border-color: var(--blue-700, #1d4ed8);
+}

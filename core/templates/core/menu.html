@@ -1,151 +1,101 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Menú — MediKnow</title>
-  {% load static %}
-  <link rel="stylesheet" href="{% static 'core/estilos.css' %}" />
-</head>
-<body>
+{% extends 'core/base.html' %}
+{% block content %}
+<div class="page-header">
+    <h2>¿Qué deseas hacer?</h2>
+    <p>Elige una opción para continuar.</p>
+</div>
 
-  <nav class="navbar" role="banner">
-    <a class="navbar-brand" href="{% url 'menu' %}">
-      <div class="logo-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
-             stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-          <path d="M2 17l10 5 10-5"/>
-          <path d="M2 12l10 5 10-5"/>
-        </svg>
-      </div>
-      <span>Medi<em>Know</em></span>
-    </a>
-    <div class="navbar-right">
-      <span class="navbar-meta">{{ request.user.get_full_name|default:request.user.username }}</span>
-      <form action="{% url 'logout' %}" method="post" style="display:inline;">
-        {% csrf_token %}
-        <button type="submit" class="navbar-logout">Salir</button>
-      </form>
+<div class="grid-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; margin-top: 24px;">
+    
+    <div class="card" style="border: 1px solid var(--border-color, #e2e8f0); padding: 24px; border-radius: 8px; background: white; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <div class="card-icon" style="font-size: 1.5rem; margin-bottom: 12px;">📋</div>
+            <h3 style="margin: 0 0 8px 0; font-size: 1.2rem;">Enfermedades</h3>
+            <p style="margin: 0 0 16px 0; color: #6c757d; font-size: 0.95rem; line-height: 1.4;">Consulta el registro de enfermedades preestablecidas y agrega nuevas, validadas contra CIE-10, CIE-11 y REUNIS.</p>
+        </div>
+        <a href="{% url 'enfermedades' %}" style="display: block; text-align: center; background-color: #1d4ed8; color: white; padding: 10px 16px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; text-decoration: none; border: 2px solid #1d4ed8; margin-top: auto;">Ver registro →</a>
     </div>
-  </nav>
 
-  <main class="page-wrapper">
-    <header class="page-header">
-      <h1>¿Qué deseas hacer?</h1>
-      <p>Elige una opción para continuar.</p>
-    </header>
-
-    <div class="menu-grid">
-
-      <a class="menu-card" href="{% url 'enfermedades' %}">
-        <div class="menu-card-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-               stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
-            <path d="M9 7h7M9 11h7"/>
-          </svg>
+    <div class="card" style="border: 1px solid var(--border-color, #e2e8f0); padding: 24px; border-radius: 8px; background: white; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <div class="card-icon" style="font-size: 1.5rem; margin-bottom: 12px;">📝</div>
+            <h3 style="margin: 0 0 8px 0; font-size: 1.2rem;">Ingresar síntomas</h3>
+            <p style="margin: 0 0 16px 0; color: #6c757d; font-size: 0.95rem; line-height: 1.4;">Registra los síntomas del paciente y obtén un diagnóstico diferencial ponderado mediante el motor de inferencia.</p>
         </div>
-        <h2>Enfermedades</h2>
-        <p>Consulta el registro de enfermedades preestablecidas y agrega nuevas, validadas contra CIE-10, CIE-11 y REUNIS.</p>
-        <span class="menu-card-cta">Ver registro →</span>
-      </a>
-
-      <a class="menu-card" href="{% url 'cuestionario' %}">
-        <div class="menu-card-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-               stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 11l3 3L22 4"/>
-            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-          </svg>
-        </div>
-        <h2>Ingresar síntomas</h2>
-        <p>Registra los síntomas del paciente y obtén un diagnóstico diferencial ponderado.</p>
-        <span class="menu-card-cta">Ir al cuestionario →</span>
-      </a>
-
-      <a class="menu-card" href="{% url 'registro_paciente' %}">
-        <div class="menu-card-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-               stroke-linecap="round" stroke-linejoin="round">
-            <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M20 8v6M23 11h-6"/>
-          </svg>
-        </div>
-        <h2>Registrar paciente</h2>
-        <p>Crea la ficha de un paciente nuevo para poder ingresar sus síntomas.</p>
-        <span class="menu-card-cta">Registrar →</span>
-      </a>
-
-      <a class="menu-card" href="{% url 'sintomas' %}">
-        <div class="menu-card-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-               stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2a4 4 0 00-4 4v6a4 4 0 008 0V6a4 4 0 00-4-4z"/>
-            <path d="M6 10v2a6 6 0 0012 0v-2M12 18v4M8 22h8"/>
-          </svg>
-        </div>
-        <h2>Síntomas</h2>
-        <p>Consulta y registra los síntomas usados por el motor de inferencia.</p>
-        <span class="menu-card-cta">Ver síntomas →</span>
-      </a>
-  
-      <a class="menu-card" href="{% url 'tratamientos' %}">
-        <div class="menu-card-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-               stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 8v8M8 12h8"/>
-            <circle cx="12" cy="12" r="9"/>
-          </svg>
-        </div>
-        <h2>Tratamientos</h2>
-        <p>Consulta y registra los tratamientos con sus condiciones de aplicación.</p>
-        <span class="menu-card-cta">Ver tratamientos →</span>
-      </a>
-      <a class="menu-card" href="{% url 'relaciones' %}">
-        <div class="menu-card-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-               stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="6" cy="6" r="3"/>
-            <circle cx="18" cy="18" r="3"/>
-            <path d="M8 8l8 8M18 6L6 18"/>
-          </svg>
-        </div>
-        <h2>Relaciones</h2>
-        <p>Conecta enfermedades con síntomas y tratamientos, con su peso y condiciones formales.</p>
-        <span class="menu-card-cta">Gestionar relaciones →</span>
-      </a>
-
-      <a class="menu-card" href="{% url 'consultas_avanzadas' %}">
-        <div class="menu-card-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-               stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="7"/>
-            <path d="M21 21l-4.3-4.3"/>
-          </svg>
-        </div>
-        <h2>Consultas avanzadas</h2>
-        <p>Busca enfermedades combinando síntomas, tratamientos, categoría y peso de asociación.</p>
-        <span class="menu-card-cta">Buscar →</span>
-      </a>
-
-      <a class="menu-card" href="{% url 'reportes' %}">
-        <div class="menu-card-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-               stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 9v4M12 17h.01"/>
-            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-          </svg>
-        </div>
-        <h2>Inconsistencias</h2>
-        <p>Detecta síntomas huérfanos, enfermedades sin tratamiento y otras inconsistencias del modelo.</p>
-        <span class="menu-card-cta">Ver reporte →</span>
-      </a>
-
+        <a href="{% url 'cuestionario' %}" style="display: block; text-align: center; background-color: #1d4ed8; color: white; padding: 10px 16px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; text-decoration: none; border: 2px solid #1d4ed8; margin-top: auto;">Ir al cuestionario →</a>
     </div>
-  </main>
 
-</body>
-</html>
+    <div class="card" style="border: 1px solid var(--border-color, #e2e8f0); padding: 24px; border-radius: 8px; background: white; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <div class="card-icon" style="font-size: 1.5rem; margin-bottom: 12px;">👤➕</div>
+            <h3 style="margin: 0 0 8px 0; font-size: 1.2rem;">Registrar paciente</h3>
+            <p style="margin: 0 0 16px 0; color: #6c757d; font-size: 0.95rem; line-height: 1.4;">Crea la ficha de un paciente nuevo para poder ingresar sus síntomas posteriormente en el sistema.</p>
+        </div>
+        <a href="{% url 'registro_paciente' %}" style="display: block; text-align: center; background-color: #1d4ed8; color: white; padding: 10px 16px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; text-decoration: none; border: 2px solid #1d4ed8; margin-top: auto;">Registrar →</a>
+    </div>
+
+    <div class="card" style="border: 1px solid var(--border-color, #e2e8f0); padding: 24px; border-radius: 8px; background: white; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <div class="card-icon" style="font-size: 1.5rem; margin-bottom: 12px;">🩺</div>
+            <h3 style="margin: 0 0 8px 0; font-size: 1.2rem;">Síntomas</h3>
+            <p style="margin: 0 0 16px 0; color: #6c757d; font-size: 0.95rem; line-height: 1.4;">Consulta y registra la lista base de síntomas usados por el motor de inferencia y su relevancia.</p>
+        </div>
+        <a href="{% url 'sintomas' %}" style="display: block; text-align: center; background-color: #1d4ed8; color: white; padding: 10px 16px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; text-decoration: none; border: 2px solid #1d4ed8; margin-top: auto;">Ver síntomas →</a>
+    </div>
+
+    <div class="card" style="border: 1px solid var(--border-color, #e2e8f0); padding: 24px; border-radius: 8px; background: white; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <div class="card-icon" style="font-size: 1.5rem; margin-bottom: 12px;">💊</div>
+            <h3 style="margin: 0 0 8px 0; font-size: 1.2rem;">Tratamientos</h3>
+            <p style="margin: 0 0 16px 0; color: #6c757d; font-size: 0.95rem; line-height: 1.4;">Consulta y registra los tratamientos con sus condiciones de aplicación clínicas y farmacológicas.</p>
+        </div>
+        <a href="{% url 'tratamientos' %}" style="display: block; text-align: center; background-color: #1d4ed8; color: white; padding: 10px 16px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; text-decoration: none; border: 2px solid #1d4ed8; margin-top: auto;">Ver tratamientos →</a>
+    </div>
+
+    <div class="card" style="border: 1px solid var(--border-color, #e2e8f0); padding: 24px; border-radius: 8px; background: white; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <div class="card-icon" style="font-size: 1.5rem; margin-bottom: 12px;">🔗</div>
+            <h3 style="margin: 0 0 8px 0; font-size: 1.2rem;">Relaciones</h3>
+            <p style="margin: 0 0 16px 0; color: #6c757d; font-size: 0.95rem; line-height: 1.4;">Conecta enfermedades con síntomas (con su peso) y tratamientos con sus condiciones formales.</p>
+        </div>
+        <a href="{% url 'relaciones' %}" style="display: block; text-align: center; background-color: #1d4ed8; color: white; padding: 10px 16px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; text-decoration: none; border: 2px solid #1d4ed8; margin-top: auto;">Gestionar relaciones →</a>
+    </div>
+
+    <div class="card" style="border: 1px solid var(--border-color, #e2e8f0); padding: 24px; border-radius: 8px; background: white; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <div class="card-icon" style="font-size: 1.5rem; margin-bottom: 12px;">🔍</div>
+            <h3 style="margin: 0 0 8px 0; font-size: 1.2rem;">Consultas avanzadas</h3>
+            <p style="margin: 0 0 16px 0; color: #6c757d; font-size: 0.95rem; line-height: 1.4;">Busca enfermedades combinando síntomas, tratamientos, categoría y peso de asociación.</p>
+        </div>
+        <a href="{% url 'consultas_avanzadas' %}" style="display: block; text-align: center; background-color: #1d4ed8; color: white; padding: 10px 16px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; text-decoration: none; border: 2px solid #1d4ed8; margin-top: auto;">Buscar →</a>
+    </div>
+
+    <div class="card" style="border: 1px solid var(--border-color, #e2e8f0); padding: 24px; border-radius: 8px; background: white; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <div class="card-icon" style="font-size: 1.5rem; margin-bottom: 12px;">⚠️</div>
+            <h3 style="margin: 0 0 8px 0; font-size: 1.2rem;">Inconsistencias</h3>
+            <p style="margin: 0 0 16px 0; color: #6c757d; font-size: 0.95rem; line-height: 1.4;">Detecta síntomas huérfanos, enfermedades sin tratamiento y otras inconsistencias del modelo.</p>
+        </div>
+        <a href="{% url 'reportes' %}" style="display: block; text-align: center; background-color: #1d4ed8; color: white; padding: 10px 16px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; text-decoration: none; border: 2px solid #1d4ed8; margin-top: auto;">Ver reporte →</a>
+    </div>
+
+    <div class="card" style="border: 1px solid var(--border-color, #e2e8f0); border-top: 4px solid #1d4ed8; padding: 24px; border-radius: 8px; background: white; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+        <div>
+            <div class="card-icon" style="font-size: 1.5rem; margin-bottom: 12px;">👥</div>
+            <h3 style="margin: 0 0 8px 0; font-size: 1.2rem;">Mis Pacientes</h3>
+            <p style="margin: 0 0 16px 0; color: #6c757d; font-size: 0.95rem; line-height: 1.4;">Accede al listado completo de tus pacientes, realiza búsquedas rápidas por código e ingresa síntomas de forma directa.</p>
+        </div>
+        <a href="{% url 'pacientes' %}" style="display: block; text-align: center; background-color: #1d4ed8; color: white; padding: 10px 16px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; text-decoration: none; border: 2px solid #1d4ed8; margin-top: auto;">Gestionar pacientes →</a>
+    </div>
+
+    <div class="card" style="border: 1px solid var(--border-color, #e2e8f0); border-top: 4px solid #1d4ed8; padding: 24px; border-radius: 8px; background: white; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+        <div>
+            <div class="card-icon" style="font-size: 1.5rem; margin-bottom: 12px;">👨‍⚕️</div>
+            <h3 style="margin: 0 0 8px 0; font-size: 1.2rem;">Médicos del Sistema</h3>
+            <p style="margin: 0 0 16px 0; color: #6c757d; font-size: 0.95rem; line-height: 1.4;">Visualiza los colegas e integrantes del personal médico registrados en la plataforma y sus datos de contacto de forma directa.</p>
+        </div>
+        <a href="{% url 'doctores' %}" style="display: block; text-align: center; background-color: #1d4ed8; color: white; padding: 10px 16px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; text-decoration: none; border: 2px solid #1d4ed8; margin-top: auto;">Ver médicos →</a>
+    </div>
+
+</div>
+{% endblock %}

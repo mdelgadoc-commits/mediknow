@@ -1,0 +1,23 @@
+{% extends 'core/base.html' %}
+{% block content %}
+<div class="page-header">
+    <h2>Médicos del Sistema</h2>
+</div>
+
+<div class="grid-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 20px;">
+    {% for doctor in doctores %}
+    <div class="card" style="border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        <h3 style="margin-top: 0; color: var(--blue-700);">Dr(a). {{ doctor.get_full_name|default:doctor.username }}</h3>
+        <p style="color: #6c757d; margin-bottom: 15px;">{{ doctor.email|default:"Sin correo registrado" }}</p>
+        <div style="font-size: 0.9em; border-top: 1px solid #eee; padding-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <span>Pacientes atendidos:</span>
+            <span class="badge" style="background-color: #e2e8f0; color: #4a5568; padding: 4px 8px; border-radius: 12px; font-weight: bold;">
+                {{ doctor.pacientes_count|default:0 }}
+            </span>
+        </div>
+    </div>
+    {% empty %}
+    <div style="grid-column: 1/-1; text-align: center; color: #6c757d; padding: 4px 0;">No hay médicos registrados.</div>
+    {% endfor %}
+</div>
+{% endblock %}

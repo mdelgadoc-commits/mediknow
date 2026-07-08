@@ -8,6 +8,7 @@ from django.contrib.auth import login as auth_login
 from django.db.models import Count
 
 from .models import Symptom, ClinicalCase, DiagnosisResult, Allergy, Patient, Disease, MedicalCategory, Treatment, DiseaseSymptomRelation, DiseaseTreatmentRelation
+from .models import Patient
 
 from .inference_engine import InferenceEngine, check_inconsistencies, format_inconsistencies_report, export_diagnosis_report, format_query_report
 from . import ontology_catalog
@@ -501,3 +502,17 @@ def consultas_avanzadas(request):
     context["plain_report"] = format_query_report(results, filters_summary)
 
     return render(request, "core/consultas_avanzadas.html", context)
+
+@login_required(login_url="login")
+@require_http_methods(["GET"])
+def pacientes(request):
+    # FILTRADO EXACTO: Trae SOLO los pacientes cuyo doctor es el usuario que inició sesión
+    lista_pacientes = Patient.objects.filter(doctor=request.user).order_by('full_name')
+    return render(request, 'core/pacientes.html', {'pacientes': lista_pacientes})
+
+@login_required(login_url="login")
+@require_http_methods(["GET"])
+def doctores(request):
+    # Trae a todos los médicos registrados (User) en el sistema de manera limpia
+    lista_doctores = User.objects.all().order_by('username')
+    return render(request, 'core/doctores.html', {'doctores': lista_doctores})
