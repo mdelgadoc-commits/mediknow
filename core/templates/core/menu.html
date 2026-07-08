@@ -70,14 +70,14 @@
         <a href="{% url 'consultas_avanzadas' %}" style="display: block; text-align: center; background-color: #1d4ed8; color: white; padding: 10px 16px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; text-decoration: none; border: 2px solid #1d4ed8; margin-top: auto;">Buscar →</a>
     </div>
 
-    <div class="card" style="border: 1px solid var(--border-color, #e2e8f0);">
-        <div>
-             <div class="card-icon" style="font-size: 1.5rem; margin-bottom: 8px;">🔍</div>
-             <h3 style="margin: 0 0 8px 0; font-size: 1.2rem;">Inconsistencias</h3>
-             <p style="margin: 0 0 16px 0; color: #6c757d; font-size: 0.95rem;">Verificar consistencia del conocimiento clínico.</p>
-        </div>
-    <a href="{% url 'exportar_reporte' %}" style="display: block; text-align: center;">Ver Reporte PDF</a>
+<div class="card">
+    <div style="margin-bottom: 15px;">
+        <span style="font-size: 2rem;">🔍</span>
     </div>
+    <h3>Inconsistencias</h3>
+    <p>Verificar consistencia del conocimiento clínico.</p>
+    <a href="{% url 'deteccion_inconsistencias' %}" class="btn btn-primary" style="display: inline-block; width: 100%; text-align: center;">Gestionar inconsistencias →</a>
+</div>
 
     <div class="card" style="border: 1px solid var(--border-color, #e2e8f0); border-top: 4px solid #1d4ed8; padding: 24px; border-radius: 8px; background: white; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
         <div>

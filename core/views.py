@@ -679,10 +679,12 @@ def deteccion_inconsistencias(request):
     sintomas_con_enfermedad = DiseaseSymptomRelation.objects.values_list('symptom_id', flat=True)
     sintomas_inconsistentes = Symptom.objects.exclude(id__in=sintomas_con_enfermedad)
     
-    # 2. Tratamientos sin reglas formales
+    # 2. Buscar tratamientos sin condiciones definidas (Usando el campo real de tu modelo)
     tratamientos_inconsistentes = Treatment.objects.filter(
-        conditions__isnull=True
-    ) | Treatment.objects.filter(conditions="")
+        application_conditions__isnull=True
+    ) | Treatment.objects.filter(application_conditions="")
+
+
 
     return render(request, 'core/inconsistencias.html', {
         'sintomas_inconsistentes': sintomas_inconsistentes,
