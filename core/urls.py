@@ -15,4 +15,10 @@ urlpatterns = [
     path('consultas-avanzadas/', views.consultas_avanzadas, name='consultas_avanzadas'),
     path('pacientes/', views.pacientes, name='pacientes'),
     path('doctores/', views.doctores, name='doctores'),
+
+    path('inconsistencias/', views.deteccion_inconsistencias, name='deteccion_inconsistencias'),
+    path('reporte/exportar/', views.exportar_reporte_texto, name='exportar_reporte_texto'),
+
+    path('inconsistencias/eliminar-sintoma/<int:symptom_id>/', views.eliminar_sintoma_inconsistente, name='eliminar_sintoma_inconsistente'),
+path('inconsistencias/eliminar-tratamiento/<int:treatment_id>/', views.eliminar_tratamiento_inconsistente, name='eliminar_tratamiento_inconsistente'),
 ]

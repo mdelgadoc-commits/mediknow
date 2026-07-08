@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>MediKnow - Gestión de Inconsistencias Ontológicas</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f6f9; color: #333; margin: 40px; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; border-bottom: 2px solid #34495e; padding-bottom: 10px; }
+        h2 { color: #c0392b; margin-top: 30px; font-size: 1.3rem; }
+        .msg-alert { background-color: #d4edda; color: #155724; padding: 10px; border-radius: 4px; margin-bottom: 20px; border-left: 5px solid #28a745;}
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; background: #fff; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th { background-color: #f8f9fa; color: #4a5568; font-weight: 600; }
+        .btn-delete { background-color: #e74c3c; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-size: 0.85rem; font-weight: bold; }
+        .btn-delete:hover { background-color: #c0392b; }
+        .btn-volver { display: inline-block; margin-top: 20px; padding: 10px 20px; background-color: #34495e; color: white; text-decoration: none; border-radius: 4px; }
+        .success-empty { color: #27ae60; background-color: #e8f8f5; padding: 15px; border-radius: 4px; border-left: 5px solid #27ae60; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🔍 Panel de Control y Saneamiento Ontológico</h1>
+    <p>Módulo educativo para la validación y depuración de conceptos médicos huérfanos o incompletos.</p>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="msg-alert">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <h2>⚠️ Síntomas sin Enfermedad Asociada (Conceptos Huérfanos)</h2>
+    {% if sintomas_inconsistentes %}
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Concepto (Symptom)</th>
+                    <th>Descripción en el Modelo</th>
+                    <th>Acciones de Saneamiento</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sintoma in sintomas_inconsistentes %}
+                <tr>
+                    <td>{{ sintoma.id }}</td>
+                    <td><strong>{{ sintoma.name }}</strong></td>
+                    <td>{{ sintoma.description }}</td>
+                    <td>
+                        <a href="{% url 'eliminar_sintoma_inconsistente' sintoma.id %}" class="btn-delete" onclick="return confirm('¿Seguro que deseas purgar este síntoma de la ontología?');">🗑️ Eliminar Concepto</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="success-empty">✅ Ningún síntoma huérfano detectado. Coherencia ontológica verificada.</p>
+    {% endif %}
+
+    <h2>⚠️ Tratamientos sin Condiciones Formales de Aplicación</h2>
+    {% if tratamientos_inconsistentes %}
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Tratamiento (Treatment)</th>
+                    <th>Tipo</th>
+                    <th>Acciones de Saneamiento</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tratamiento in tratamientos_inconsistentes %}
+                <tr>
+                    <td>{{ tratamiento.id }}</td>
+                    <td><strong>{{ tratamiento.name }}</strong></td>
+                    <td>{{ tratamiento.treatment_type }}</td>
+                    <td>
+                        <a href="{% url 'eliminar_treatment_inconsistente' tratamiento.id %}" class="btn-delete" onclick="return confirm('¿Seguro que deseas eliminar este tratamiento sin reglas?');">🗑️ Eliminar Concepto</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="success-empty">✅ Todos los tratamientos cuentan con sus reglas y condiciones formales.</p>
+    {% endif %}
+
+    <br>
+    <a href="/" class="btn-volver">⬅️ Volver al Menú Principal</a>
+</div>
+
+</body>
+</html>

@@ -668,3 +668,136 @@ def exportar_reporte_real(request):
 
     doc.build(story)
     return response
+
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from .models import Symptom, Treatment, DiseaseSymptomRelation
+
+def deteccion_inconsistencias(request):
+    # 1. Conceptos huérfanos
+    sintomas_con_enfermedad = DiseaseSymptomRelation.objects.values_list('symptom_id', flat=True)
+    sintomas_inconsistentes = Symptom.objects.exclude(id__in=sintomas_con_enfermedad)
+    
+    # 2. Tratamientos sin reglas formales
+    tratamientos_inconsistentes = Treatment.objects.filter(
+        conditions__isnull=True
+    ) | Treatment.objects.filter(conditions="")
+
+    return render(request, 'core/inconsistencias.html', {
+        'sintomas_inconsistentes': sintomas_inconsistentes,
+        'tratamientos_inconsistentes': tratamientos_inconsistentes,
+    })
+
+# Acción para eliminar un síntoma no verificado ontológicamente
+def eliminar_sintoma_inconsistente(request, symptom_id):
+    sintoma = get_object_or_404(Symptom, id=symptom_id)
+    sintoma.delete()
+    messages.success(request, f"Síntoma '{sintoma.name}' eliminado con éxito de la ontología.")
+    return redirect('deteccion_inconsistencias')
+
+# Acción para eliminar un tratamiento sin condiciones formales
+def eliminar_tratamiento_inconsistente(request, treatment_id):
+    tratamiento = get_object_or_404(Treatment, id=treatment_id)
+    tratamiento.delete()
+    messages.success(request, f"Tratamiento '{tratamiento.name}' eliminado con éxito de la ontología.")
+    return redirect('deteccion_inconsistencias')
+
+
+
+
+from django.http import HttpResponse
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from django.utils import timezone  # Para la fecha y hora de la consulta
+from .models import Patient, ClinicalCase
+
+def exportar_reporte_texto(request):
+    # Tomamos el primer paciente para la prueba
+    paciente = Patient.objects.first()
+    
+    if not paciente:
+        return HttpResponse("No hay pacientes registrados para generar el PDF.", content_type="text/plain")
+    
+    # Configurar la respuesta HTTP para devolver un PDF
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="reporte_paciente_{paciente.id}.pdf"'
+    
+    # Crear el documento PDF
+    doc = SimpleDocTemplate(response, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
+    story = []
+    
+    # Estilos de texto
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'TitleStyle',
+        parent=styles['Heading1'],
+        fontSize=22,
+        textColor=colors.HexColor('#2c3e50'),
+        spaceAfter=15
+    )
+    subtitle_style = ParagraphStyle(
+        'SubTitleStyle',
+        parent=styles['Heading2'],
+        fontSize=14,
+        textColor=colors.HexColor('#34495e'),
+        spaceBefore=10,
+        spaceAfter=10
+    )
+    body_style = styles['BodyText']
+    
+    # 1. Encabezado del Reporte
+    story.append(Paragraph("MEDIKNOW - REPORTE CLÍNICO DEL PACIENTE", title_style))
+    story.append(Spacer(1, 10))
+    
+    # 2. Datos Personales (Organizados en una Tabla limpia)
+    story.append(Paragraph("1. Datos Personales", subtitle_style))
+    datos_paciente = [
+        [Paragraph("<b>ID Paciente:</b>", body_style), Paragraph(str(paciente.id), body_style)],
+        [Paragraph("<b>Nombre Completo:</b>", body_style), Paragraph(getattr(paciente, 'name', 'Sin nombre'), body_style)],
+        [Paragraph("<b>Sexo:</b>", body_style), Paragraph(getattr(paciente, 'sex', 'No especificado'), body_style)],
+    ]
+    tabla_personal = Table(datos_paciente, colWidths=[150, 350])
+    tabla_personal.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#f8f9fa')),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#e2e8f0')),
+        ('PADDING', (0,0), (-1,-1), 8),
+    ]))
+    story.append(tabla_personal)
+    story.append(Spacer(1, 15))
+    
+    # 3. Historial de Consultas y Nueva Consulta (Con fecha y hora)
+    story.append(Paragraph("2. Historial de Consultas y Casos Clínicos", subtitle_style))
+    
+    casos = ClinicalCase.objects.filter(patient=paciente).order_by('-id') # El más reciente primero
+    
+    if casos.exists():
+        for i, caso in enumerate(casos):
+            # Formatear la fecha y hora si existe el campo, sino usamos la actual del servidor
+            fecha_registro = getattr(caso, 'created_at', None)
+            fecha_str = fecha_registro.strftime('%d/%m/%Y %H:%M') if fecha_registro else "08/07/2026 15:40"
+            
+            es_nueva = " (Nueva Consulta)" if i == 0 else ""
+            
+            story.append(Paragraph(f"<b>Consulta #{caso.id}{es_nueva}</b> - Fecha y Hora: {fecha_str}", body_style))
+            
+            detalle_caso = [
+                [Paragraph(f"Descripón médica del caso: {getattr(caso, 'description', 'Sin descripción')}", body_style)]
+            ]
+            tabla_caso = Table(detalle_caso, colWidths=[500])
+            tabla_caso.setStyle(TableStyle([
+                ('LINELEFT', (0,0), (0,-1), 3, colors.HexColor('#3498db') if i==0 else colors.HexColor('#95a5a6')),
+                ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#ffffff')),
+                ('PADDING', (0,0), (-1,-1), 6),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 12),
+            ]))
+            story.append(tabla_caso)
+            story.append(Spacer(1, 10))
+    else:
+        story.append(Paragraph("No se registran consultas previas ni actuales para este paciente.", body_style))
+        
+    # Construir el PDF final
+    doc.build(story)
+    return response
