@@ -24,4 +24,10 @@ urlpatterns = [
 
     path('inconsistencias/eliminar-sintoma/<int:symptom_id>/', views.eliminar_sintoma_inconsistente, name='eliminar_sintoma_inconsistente'),
     path('inconsistencias/eliminar-tratamiento/<int:treatment_id>/', views.eliminar_tratamiento_inconsistente, name='eliminar_tratamiento_inconsistente'),
+
+    path('enfermedad/eliminar/<int:pk>/', views.eliminar_enfermedad, name='eliminar_enfermedad'),
+    path('sintoma/eliminar/<int:pk>/', views.eliminar_sintoma, name='eliminar_sintoma'),
+    path('tratamiento/eliminar/<int:pk>/', views.eliminar_tratamiento, name='eliminar_tratamiento'),
+    path('paciente/eliminar/<int:pk>/', views.eliminar_paciente, name='eliminar_paciente'),
+    
 ]

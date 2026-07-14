@@ -802,4 +802,56 @@ def exportar_reporte_texto(request):
         
     # Construir el PDF final
     doc.build(story)
+
     return response
+
+
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.db.models import ProtectedError
+# Importamos tus modelos reales en inglés
+from .models import Disease, Symptom, Treatment, Patient
+
+@login_required
+def eliminar_enfermedad(request, pk):
+    enfermedad = get_object_or_404(Disease, pk=pk)
+    try:
+        enfermedad.delete()
+        messages.success(request, f"La enfermedad '{enfermedad.name}' fue eliminada correctamente.")
+    except ProtectedError:
+        messages.error(request, f"No se puede eliminar '{enfermedad.name}' porque tiene diagnósticos asociados.")
+    return redirect('enfermedades')
+
+@login_required
+def eliminar_sintoma(request, pk):
+    sintoma = get_object_or_404(Symptom, pk=pk)
+    try:
+        sintoma.delete()
+        messages.success(request, f"El síntoma '{sintoma.name}' fue eliminado correctamente.")
+    except ProtectedError:
+        messages.error(request, f"No se puede eliminar '{sintoma.name}' porque está siendo utilizado en diagnósticos.")
+    return redirect('sintomas')
+
+@login_required
+def eliminar_tratamiento(request, pk):
+    tratamiento = get_object_or_404(Treatment, pk=pk)
+    try:
+        tratamiento.delete()
+        messages.success(request, f"El tratamiento '{tratamiento.name}' fue eliminado correctamente.")
+    except ProtectedError:
+        messages.error(request, f"No se puede eliminar '{tratamiento.name}' porque tiene registros médicos asociados.")
+    return redirect('tratamientos')
+
+@login_required
+def eliminar_paciente(request, pk):
+    paciente = get_object_or_404(Patient, pk=pk)
+    
+    # Verificamos si el paciente pertenece al doctor logueado
+    if paciente.doctor_asignado != request.user:
+        messages.error(request, "No tienes permisos para eliminar este paciente.")
+        return redirect('pacientes')
+    
+    paciente.delete()
+    messages.success(request, f"Paciente '{paciente.full_name}' eliminado correctamente.")
+    return redirect('pacientes') 
