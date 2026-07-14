@@ -43,7 +43,9 @@
 
 <section class="results-section">
   <h2>Síntomas registrados ({{ symptoms|length }})</h2>
-  <table class="data-table">
+  {% include "core/_search_box.html" with target_table="symptoms-table" placeholder="Buscar síntomas..." %}
+  <table class="data-table" id="symptoms-table">
+
     <thead>
       <tr><th>Nombre</th><th>Descripción</th><th>Relevancia</th></tr>
     </thead>

@@ -921,3 +921,51 @@ c}
     background-color: #e0e7ff;
     border-color: var(--blue-700, #1d4ed8);
 }
+
+/* ─── Buscador con lupa (Agregado) ──────────────────────────── */
+.search-box {
+  position: relative;
+  max-width: 360px;
+  margin-bottom: 1.25rem;
+}
+.search-box .search-icon {
+  position: absolute;
+  left: .75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--gray-400);
+  pointer-events: none;
+}
+.search-box .search-input {
+  width: 100%;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  padding: .55rem .75rem .55rem 2.25rem;
+  font-size: .9rem;
+  font-family: var(--font-body);
+  color: var(--gray-900);
+  background: var(--gray-50);
+  transition: border-color .15s, box-shadow .15s;
+}
+.search-box .search-input:focus {
+  outline: none;
+  border-color: var(--blue-500);
+  background: var(--white);
+  box-shadow: var(--shadow-focus);
+}
+.data-table tr.search-hidden { display: none; }
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  font-family: var(--font-ui);
+  font-size: .85rem;
+  font-weight: 500;
+  color: var(--blue-700);
+  text-decoration: none;
+  margin-bottom: 1.25rem;
+}
+.back-link:hover { text-decoration: underline; }

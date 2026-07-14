@@ -34,15 +34,15 @@
   <div class="field-group" style="grid-column: 1 / -1;">
     <label for="id_description">Descripción</label>
     <textarea id="id_description" name="description" rows="3" required>{{ form_values.description }}</textarea>
-  </div>
-  <div style="grid-column: 1 / -1;">
+  </div><div style="grid-column: 1 / -1;">
     <button type="submit" class="btn-diagnose">Guardar enfermedad</button>
   </div>
 </form>
 
 <section class="results-section">
   <h2>Enfermedades registradas ({{ diseases|length }})</h2>
-  <table class="data-table">
+  {% include "core/_search_box.html" with target_table="diseases-table" placeholder="Buscar por nombre o categoría..." %}
+  <table class="data-table" id="diseases-table">
     <thead>
       <tr>
         <th>Nombre</th>
@@ -60,7 +60,9 @@
         <td>{{ disease.cie11_code|default:"—" }}</td>
       </tr>
       {% empty %}
-      <tr><td colspan="4">Aún no hay enfermedades registradas.</td></tr>
+      <tr data-table-empty="true">
+        <td colspan="4">Aún no hay enfermedades registradas.</td>
+      </tr>
       {% endfor %}
     </tbody>
   </table>

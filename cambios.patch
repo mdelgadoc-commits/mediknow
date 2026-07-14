@@ -1,0 +1,343 @@
+cat << 'EOF' > cambios_busqueda_mediknow.patch
+diff --git a/core/static/core/estilos.css b/core/static/core/estilos.css
+index 63c954f..0c72e6c 100644
+--- a/core/static/core/estilos.css
++++ b/core/static/core/estilos.css
+@@ -97,6 +97,55 @@ body {
+   padding: 2.5rem 1.5rem 4rem;
+ }
+ 
++/* ─── Buscador con lupa ──────────────────────────────────── */
++.search-box {
++  position: relative;
++  max-width: 360px;
++  margin-bottom: 1.25rem;
++}
++.search-box .search-icon {
++  position: absolute;
++  left: .75rem;
++  top: 50%;
++  transform: translateY(-50%);
++  width: 16px;
++  height: 16px;
++  color: var(--gray-400);
++  pointer-events: none;
++}
++.search-box .search-input {
++  width: 100%;
++  border: 1px solid var(--gray-200);
++  border-radius: var(--radius-sm);
++  padding: .55rem .75rem .55rem 2.25rem;
++  font-size: .9rem;
++  font-family: var(--font-body);
++  color: var(--gray-900);
++  background: var(--gray-50);
++  transition: border-color .15s, box-shadow .15s;
++}
++.search-box .search-input:focus {
++  outline: none;
++  border-color: var(--blue-500);
++  background: var(--white);
++  box-shadow: var(--shadow-focus);
++}
++.data-table tr.search-hidden { display: none; }
++
++/* ─── Enlace de retorno al menú ──────────────────────────── */
++.back-link {
++  display: inline-flex;
++  align-items: center;
++  gap: .35rem;
++  font-family: var(--font-ui);
++  font-size: .85rem;
++  font-weight: 500;
++  color: var(--blue-700);
++  text-decoration: none;
++  margin-bottom: 1.25rem;
++}
++.back-link:hover { text-decoration: underline; }
++
+ /* ─── Encabezado de sección ──────────────────────────────── */
+ .page-header {
+   margin-bottom: 2rem;
+diff --git a/core/static/core/script.js b/core/static/core/script.js
+index f9823b8..ca6450b 100644
+--- a/core/static/core/script.js
++++ b/core/static/core/script.js
+@@ -148,4 +148,40 @@ document.addEventListener('DOMContentLoaded', () => {
+      }, 200);
+    }
+ 
++  /* ── Filtrado de tablas en tiempo real (buscador con lupa) ──
++     Cualquier input con [data-table-filter="#idDeLaTabla"] filtra
++     las filas de <tbody> cuyo texto no coincida con lo escrito. ── */
++  document.querySelectorAll('[data-table-filter]').forEach(input => {
++    const table = document.querySelector(input.dataset.tableFilter);
++    if (!table) return;
++    const tbody = table.querySelector('tbody');
++    if (!tbody) return;
++
++    const rows = Array.from(tbody.querySelectorAll('tr'));
++    let emptyRow = null;
++
++    input.addEventListener('input', () => {
++      const term = input.value.trim().toLowerCase();
++      let visibleCount = 0;
++
++      rows.forEach(row => {
++        if (row.dataset.tableEmpty) return; // fila de "sin resultados" original: se maneja aparte
++        const match = row.textContent.toLowerCase().includes(term);
++        row.classList.toggle('search-hidden', !match);
++        if (match) visibleCount += 1;
++      });
++
++      if (!emptyRow) {
++        const colCount = table.querySelectorAll('thead th').length || 1;
++        emptyRow = document.createElement('tr');
++        emptyRow.className = 'search-empty-row';
++        emptyRow.innerHTML = `<td colspan="${colCount}">No se encontraron resultados para "<span></span>".</td>`;
++        tbody.appendChild(emptyRow);
++      }
++
++      emptyRow.querySelector('span').textContent = input.value.trim();
++      emptyRow.classList.toggle('search-hidden', visibleCount !== 0 || term === '');
++    });
++  });
++
+ });
+\ No newline at end of file
+diff --git a/core/templates/core/base.html b/core/templates/core/base.html
+index c4af657..58a3140 100644
+--- a/core/templates/core/base.html
++++ b/core/templates/core/base.html
+@@ -31,8 +31,11 @@
+    </nav>
+ 
+    <main class="page-wrapper">
++    <a class="back-link" href="{% url 'menu' %}">&larr; Volver al menú</a>
+      {% block content %}{% endblock %}
+    </main>
+ 
++  <script src="{% static 'core/script.js' %}"></script>
++
+ </body>
+ </html>
+diff --git a/core/templates/core/consultas_avanzadas.html b/core/templates/core/consultas_avanzadas.html
+index ffee1dc..754146c 100755
+--- a/core/templates/core/consultas_avanzadas.html
++++ b/core/templates/core/consultas_avanzadas.html
+@@ -120,6 +120,7 @@
+    </nav>
+ 
+    <main class="page-wrapper">
++    <a class="back-link" href="{% url 'menu' %}">&larr; Volver al menú</a>
+      <header class="page-header">
+        <h1>Consultas avanzadas</h1>
+        <p>Busque enfermedades combinando síntomas, tratamientos, categoría médica y peso de asociación sobre el grafo de conocimiento.</p>
+diff --git a/core/templates/core/cuestionario.html b/core/templates/core/cuestionario.html
+index 703726a..0cc71ba 100644
+--- a/core/templates/core/cuestionario.html
++++ b/core/templates/core/cuestionario.html
+@@ -28,6 +28,8 @@
+    <!-- ── Contenido principal ───────────────────────────── -->
+    <main class="page-wrapper">
+ 
++    <a class="back-link" href="{% url 'menu' %}">&larr; Volver al menú</a>
++
+      <header class="page-header">
+        <h1>Cuestionario de síntomas</h1>
+        <p>Marque los síntomas presentes en el paciente y ajuste la intensidad de cada uno.</p>
+diff --git a/core/templates/core/enfermedades.html b/core/templates/core/enfermedades.html
+index 75f144b..d5a63ac 100644
+--- a/core/templates/core/enfermedades.html
++++ b/core/templates/core/enfermedades.html
+@@ -42,7 +42,8 @@
+ 
+ <section class="results-section">
+   <h2>Enfermedades registradas ({{ diseases|length }})</h2>
+-  <table class="data-table">
++  {% include "core/_search_box.html" with target_table="diseases-table" placeholder="Buscar por nombre o categoría..." %}
++  <table class="data-table" id="diseases-table">
+       <thead>
+         <tr>
+           <th>Nombre</th>
+diff --git a/core/templates/core/menu.html b/core/templates/core/menu.html
+index 0edb32c..996b492 100755
+--- a/core/templates/core/menu.html
++++ b/core/templates/core/menu.html
+@@ -92,6 +92,35 @@
+          <span class="menu-card-cta">Ver síntomas →</span>
+        </a>
+    
++      <a class="menu-card" href="{% url 'pacientes' %}">
++        <div class="menu-card-icon" aria-hidden="true">
++          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
++               stroke-linecap="round" stroke-linejoin="round">
++            <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
++            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
++            <circle cx="11.5" cy="9" r="2"/>
++            <path d="M8.5 16c.5-2 1.7-3 3-3s2.5 1 3 3"/>
++          </svg>
++        </div>
++        <h2>Mis pacientes</h2>
++        <p>Consulta el listado de pacientes que has registrado y accede a su historial.</p>
++        <span class="menu-card-cta">Ver mis pacientes →</span>
++      </a>
++
++      <a class="menu-card" href="{% url 'doctores' %}">
++        <div class="menu-card-icon" aria-hidden="true">
++          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
++               stroke-linecap="round" stroke-linejoin="round">
++            <path d="M20.4 14.5L16 10 4 20"/>
++            <path d="M4 4h7v7H4z"/>
++            <circle cx="16.5" cy="6.5" r="2.5"/>
++          </svg>
++        </div>
++        <h2>Mis doctores</h2>
++        <p>Consulta los médicos registrados en el sistema y sus pacientes a cargo.</p>
++        <span class="menu-card-cta">Ver doctores →</span>
++      </a>
++
+        <a class="menu-card" href="{% url 'tratamientos' %}">
+          <div class="menu-card-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+diff --git a/core/templates/core/relaciones.html b/core/templates/core/relaciones.html
+index 5c21f5a..260cb45 100644
+--- a/core/templates/core/relaciones.html
++++ b/core/templates/core/relaciones.html
+@@ -9,16 +9,45 @@
+ 
+ <form method="get" class="form-card" style="grid-template-columns: 1fr; margin-bottom:1.5rem;">
+   <div class="field-group">
+-    <label for="id_disease">Selecciona una enfermedad</label>
+-    <select id="id_disease" name="disease" onchange="this.form.submit()">
+-      <option value="">— Elegir —</option>
++    <label for="id_disease_search">Selecciona una enfermedad</label>
++    <div class="search-box" style="max-width:none;">
++      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
++           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
++        <circle cx="11" cy="11" r="7"/>
++        <path d="M21 21l-4.3-4.3"/>
++      </svg>
++      <input type="text" id="id_disease_search" class="search-input" list="diseases-list"
++             placeholder="Escribe el nombre de la enfermedad..."
++             value="{% if disease %}{{ disease.name }}{% endif %}" autocomplete="off">
++    </div>
++    <datalist id="diseases-list">
+        {% for d in diseases %}
+-      <option value="{{ d.pk }}" {% if disease and disease.pk == d.pk %}selected{% endif %}>{{ d.name }}</option>
++      <option data-pk="{{ d.pk }}" value="{{ d.name }}"></option>
+        {% endfor %}
+-    </select>
++    </datalist>
++    <input type="hidden" name="disease" id="id_disease_pk" value="{{ disease.pk|default:'' }}">
+   </div>
+ </form>
+ 
++<script>
++  document.addEventListener('DOMContentLoaded', () => {
++    const diseaseSearch = document.getElementById('id_disease_search');
++    const diseaseHidden = document.getElementById('id_disease_pk');
++    const diseaseList = document.getElementById('diseases-list');
++    if (!diseaseSearch || !diseaseHidden || !diseaseList) return;
++    const options = Array.from(diseaseList.querySelectorAll('option'));
++    diseaseSearch.addEventListener('input', () => {
++      const match = options.find(o => o.value.toLowerCase() === diseaseSearch.value.trim().toLowerCase());
++      if (match) {
++        diseaseHidden.value = match.dataset.pk;
++        diseaseSearch.form.submit();
++      } else {
++        diseaseHidden.value = '';
++      }
++    });
++  });
++</script>
++
+ {% if success %}<div class="alert-success">{{ success }}</div>{% endif %}
+ {% if errors.symptom %}<div class="alert-warning">{{ errors.symptom }}</div>{% endif %}
+ {% if errors.treatment %}<div class="alert-warning">{{ errors.treatment }}</div>{% endif %}
+diff --git a/core/templates/core/sintomas.html b/core/templates/core/sintomas.html
+index d572247..bca6c7a 100644
+--- a/core/templates/core/sintomas.html
++++ b/core/templates/core/sintomas.html
+@@ -43,7 +43,8 @@
+ 
+ <section class="results-section">
+   <h2>Síntomas registrados ({{ symptoms|length }})</h2>
+-  <table class="data-table">
++  {% include "core/_search_box.html" with target_table="symptoms-table" placeholder="Buscar por nombre..." %}
++  <table class="data-table" id="symptoms-table">
+       <thead>
+         <tr><th>Nombre</th><th>Descripción</th><th>Relevancia</th></tr>
+       </thead>
+diff --git a/core/templates/core/tratamientos.html b/core/templates/core/tratamientos.html
+index 3445e54..47b36f8 100644
+--- a/core/templates/core/tratamientos.html
++++ b/core/templates/core/tratamientos.html
+@@ -42,7 +42,8 @@
+ 
+ <section class="results-section">
+   <h2>Tratamientos registrados ({{ treatments|length }})</h2>
+-  <table class="data-table">
++  {% include "core/_search_box.html" with target_table="treatments-table" placeholder="Buscar por nombre o tipo..." %}
++  <table class="data-table" id="treatments-table">
+       <thead>
+         <tr><th>Nombre</th><th>Tipo</th><th>Condiciones</th></tr>
+       </thead>
+diff --git a/core/urls.py b/core/urls.py
+index 7700145..7e0d80a 100644
+--- a/core/urls.py
++++ b/core/urls.py
+@@ -3,15 +3,17 @@ from . import views
+ 
+ urlpatterns = [
+      path('', views.menu, name='menu'),
+-    path('sintomas/', views.cuestionario, name='cuestionario'),
++    path('cuestionario/', views.cuestionario, name='cuestionario'),
+      path('enfermedades/', views.enfermedades, name='enfermedades'),
+      path('registro-medico/', views.registro_medico, name='registro_medico'),
+      path('registro-paciente/', views.registro_paciente, name='registro_paciente'),
+      path('exportar-reporte/', views.exportar_reporte, name='exportar_reporte'),
+      path('reportes/', views.reportes, name='reportes'),
+      path('antecedentes/', views.actualizar_antecedentes, name='actualizar_antecedentes'),
+-    path('sintomas-registro/', views.sintomas, name='sintomas'),
++    path('sintomas/', views.sintomas, name='sintomas'),
+      path('tratamientos/', views.tratamientos, name='tratamientos'),
+      path('relaciones/', views.relaciones, name='relaciones'),
+      path('consultas-avanzadas/', views.consultas_avanzadas, name='consultas_avanzadas'),
++    path('pacientes/', views.pacientes, name='pacientes'),
++    path('doctores/', views.doctores, name='doctores'),
+ ]
+diff --git a/core/views.py b/core/views.py
+index b5bfa11..3fa4d23 100644
+--- a/core/views.py
++++ b/core/views.py
+@@ -87,6 +87,28 @@ def registro_paciente(request):
+      return render(request, "core/registro_paciente.html", context)
+ 
+ 
++@login_required(login_url="login")
++@require_http_methods(["GET"])
++def pacientes(request):
++    """Listado de pacientes registrados por el medico autenticado."""
++    query = request.GET.get("q", "").strip()
++    patients = Patient.objects.filter(doctor=request.user).prefetch_related("allergies")
++    if query:
++        patients = patients.filter(full_name__icontains=query) | patients.filter(code__icontains=query)
++    patients = patients.order_by("-created_at")
++    context = {"patients": patients, "query": query}
++    return render(request, "core/pacientes.html", context)
++
++
++@login_required(login_url="login")
++@require_http_methods(["GET"])
++def doctores(request):
++    """Listado de medicos (usuarios) registrados en el sistema."""
++    doctors = User.objects.annotate(patient_count=Count("patients")).order_by("first_name", "last_name", "username")
++    context = {"doctors": doctors}
++    return render(request, "core/doctores.html", context)
++
++
+ @login_required(login_url="login")
+ @require_http_methods(["GET", "POST"])
+ def cuestionario(request):
+EOF

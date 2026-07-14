@@ -149,3 +149,38 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 });
+// ── Filtrado de tablas en tiempo real (Agregado) ──
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-table-filter]').forEach(input => {
+    const table = document.querySelector(input.dataset.tableFilter);
+    if (!table) return;
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    let emptyRow = null;
+
+    input.addEventListener('input', () => {
+      const term = input.value.trim().toLowerCase();
+      let visibleCount = 0;
+
+      rows.forEach(row => {
+        if (row.dataset.tableEmpty) return;
+        const match = row.textContent.toLowerCase().includes(term);
+        row.classList.toggle('search-hidden', !match);
+        if (match) visibleCount += 1;
+      });
+
+      if (!emptyRow) {
+        const colCount = table.querySelectorAll('thead th').length || 1;
+        emptyRow = document.createElement('tr');
+        emptyRow.className = 'search-empty-row';
+        emptyRow.innerHTML = `<td colspan="${colCount}">No se encontraron resultados para "<span></span>".</td>`;
+        tbody.appendChild(emptyRow);
+      }
+
+      emptyRow.querySelector('span').textContent = input.value.trim();
+      emptyRow.classList.toggle('search-hidden', visibleCount !== 0 || term === '');
+    });
+  });
+});

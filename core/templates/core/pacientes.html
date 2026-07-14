@@ -5,8 +5,12 @@
     <p>Administración y consulta de pacientes asignados a tu perfil.</p>
 </div>
 
-<div class="card" style="border: 1px solid var(--border-color, #e2e8f0); padding: 24px; border-radius: 8px; background: white; margin-top: 20px;">
-    <table style="width: 100%; border-collapse: collapse;">
+<!-- Agregamos el buscador apuntando a "patients-table" -->
+{% include "core/_search_box.html" with target_table="patients-table" placeholder="Buscar paciente por nombre o código..." %}
+
+<div class="card" style="border: 1px solid var(--border-color, #e2e8f0); padding: 1.5rem; background: var(--white, #fff); border-radius: var(--radius-sm, 4px);">
+    <!-- Agregamos el ID de la tabla para que el JS la encuentre -->
+    <table id="patients-table" style="width: 100%; border-collapse: collapse;">
         <thead>
             <tr style="border-bottom: 2px solid var(--border-color, #e2e8f0);">
                 <th style="padding: 12px; text-align: left;">Código / ID</th>
@@ -18,17 +22,18 @@
         <tbody>
             {% for paciente in pacientes %}
             <tr style="border-bottom: 1px solid var(--border-color, #e2e8f0);">
-                <!-- Comunicación directa mediante las propiedades exactas de tu modelo Patient -->
                 <td style="padding: 12px; font-family: monospace;">{{ paciente.code }}</td>
                 <td style="padding: 12px; font-weight: bold;">{{ paciente.full_name }}</td>
-                <td style="padding: 12px;">{{ paciente.age }} años ({% if paciente.sex == 'M' %}Masc{% else %}Fem{% endif %})</td>
+                <td style="padding: 12px;">{{ paciente.age }} años ({% if paciente.gender == 'M' %}Masc{% else %}Fem{% endif %})</td>
                 <td style="padding: 12px; text-align: center;">
-                    <a href="{% url 'cuestionario' %}?paciente_id={{ paciente.pk }}" style="display: inline-block; background-color: #1d4ed8; color: white; padding: 8px 14px; border-radius: 6px; text-decoration: none; font-size: 0.85rem; font-weight: 600;">Evaluar Síntomas →</a>
+                    <a href="{% url 'cuestionario' %}?paciente_id={{ paciente.pk }}" class="button" style="text-decoration: none; padding: 6px 12px; background: var(--blue-600, #2563eb); color: white; border-radius: 4px; font-size: 0.85rem;">Evaluar Síntomas →</a>
                 </td>
             </tr>
             {% empty %}
-            <tr>
-                <td colspan="4" style="padding: 24px; text-align: center; color: #6c757d;">No tienes pacientes registrados bajo tu autoría.</td>
+            <tr data-table-empty="true">
+                <td colspan="4" style="padding: 24px; text-align: center; color: var(--gray-500, #64748b);">
+                    No se encontraron pacientes registrados.
+                </td>
             </tr>
             {% endfor %}
         </tbody>
