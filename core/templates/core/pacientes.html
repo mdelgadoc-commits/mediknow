@@ -12,41 +12,58 @@
 {% include "core/_search_box.html" with target_table="pacientes-table" placeholder="Buscar por nombre, DNI o historial..." %}
 
 <div class="card" style="border: 1px solid var(--border-color, #e2e8f0); padding: 1.5rem; background: var(--white, #fff); border-radius: var(--radius-sm, 4px);">
-    <table id="pacientes-table" style="width: 100%; border-collapse: collapse;">
-        <thead>
-            <tr style="border-bottom: 2px solid var(--border-color, #e2e8f0);">
-                <th style="padding: 12px; text-align: left;">Nombre</th>
-                <th style="padding: 12px; text-align: left;">DNI / ID</th>
-                <th style="padding: 12px; text-align: left;">Edad</th>
-                <th style="padding: 12px; text-align: left;">Teléfono</th>
-                <th style="padding: 12px; text-align: center;">Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for paciente in pacientes %}
-            <tr style="border-bottom: 1px solid var(--border-color, #e2e8f0);">
-                <td style="padding: 12px; font-weight: bold;">{{ paciente.nombre }} {{ paciente.apellido }}</td>
-                <td style="padding: 12px;">{{ paciente.dni|default:"—" }}</td>
-                <td style="padding: 12px;">{{ paciente.edad|default:"—" }} años</td>
-                <td style="padding: 12px;">{{ paciente.telefono|default:"—" }}</td>
-                <!-- Columna del Tachito para eliminar paciente -->
-                <td style="padding: 12px; text-align: center;">
-                    <form action="{% url 'eliminar_paciente' paciente.pk %}" method="POST" style="display:inline;" onsubmit="return confirm('¿De verdad quieres eliminar a este paciente? Esta acción no se puede deshacer.');">
-                        {% csrf_token %}
-                        <button type="submit" style="background: none; border: none; color: #dc2626; cursor: pointer; font-size: 1rem; transition: transform 0.2s; padding: 0;" title="Eliminar paciente">
-                            🗑️
-                        </button>
-                    </form>
-                </td>
-            </tr>
-            {% empty %}
-            <tr data-table-empty="true">
-                <td colspan="5" style="padding: 24px; text-align: center; color: var(--gray-500, #64748b);">
-                    No se encontraron pacientes registrados.
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    
+
+
+<table class="table" style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+    <thead>
+        <tr style="border-bottom: 2px solid #dee2e6; text-align: left; background-color: #f8f9fa;">
+            <th style="padding: 12px;">Nombre Completo</th>
+            <th style="padding: 12px;">DNI / Código</th>
+            <th style="padding: 12px;">Edad</th>
+            <th style="padding: 12px;">Sexo</th>
+            <th style="padding: 12px;">Alergias</th>
+            <th style="padding: 12px; text-align: center;">Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for paciente in pacientes %}
+        <tr style="border-bottom: 1px solid #dee2e6;">
+            <td style="padding: 12px; font-weight: bold; color: #1e3a8a;">{{ paciente.full_name|default:"—" }}</td>
+            <td style="padding: 12px; color: #495057;">{{ paciente.code|default:"—" }}</td>
+            <td style="padding: 12px; color: #495057;">{{ paciente.age|default:"—" }} años</td>
+            <td style="padding: 12px; color: #495057;">
+                {% if paciente.sex == 'M' %}Masculino{% elif paciente.sex == 'F' %}Femenino{% else %}{{ paciente.sex|default:"—" }}{% endif %}
+            </td>
+            <td style="padding: 12px; color: #dc3545;">
+                {% if paciente.allergies.all or paciente.other_allergies %}
+                    <ul style="margin: 0; padding-left: 15px; font-size: 0.9rem;">
+                        {% for allergy in paciente.allergies.all %}
+                            <li>{{ allergy.name }}</li>
+                        {% endfor %}
+                        {% if paciente.other_allergies %}
+                            <li>Otras: {{ paciente.other_allergies }}</li>
+                        {% endif %}
+                    </ul>
+                {% else %}
+                    <span style="color: #198754;">Ninguna</span>
+                {% endif %}
+            </td>
+            <td style="padding: 12px; text-align: center;">
+                <a href="/paciente/eliminar/{{ paciente.id }}/" onclick="return confirm('¿Seguro?');" style="color: #dc3545; text-decoration: none;">🗑️</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="6" style="padding: 20px; text-align: center; color: #6c757d;">
+                No se encontraron pacientes registrados.
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+
+
 </div>
 {% endblock %}

@@ -66,48 +66,72 @@ def registro_medico(request):
 @login_required(login_url="login")
 @require_http_methods(["GET", "POST"])
 def registro_paciente(request):
+    from .models import Patient, Allergy
     allergies = Allergy.objects.order_by("category", "name")
-    context = {"allergies": allergies, "error": None, "success": None, "patient_id": None}
+    context = {"allergies": allergies, "error": None, "success": None}
+    
     if request.method == "POST":
         full_name = request.POST.get("full_name", "").strip()
         code = request.POST.get("code", "").strip()
         other_allergies = request.POST.get("other_allergies", "").strip()
         medical_background = request.POST.get("medical_background", "").strip()
+        sex = request.POST.get("sex", "").strip()
+        
         try:
             age = int(request.POST.get("age", 0))
         except ValueError:
             age = 0
-        sex = request.POST.get("sex", "")
-        if not full_name or not code:
-            context["error"] = "El nombre y el codigo son obligatorios."
+
+        # --- VALIDACIONES ---
+        if not full_name or len(full_name) < 3:
+            context["error"] = "El nombre completo es obligatorio y debe tener al menos 3 caracteres."
             return render(request, "core/registro_paciente.html", context)
+            
+        if any(char.isdigit() for char in full_name):
+            context["error"] = "El nombre de un paciente no puede contener números."
+            return render(request, "core/registro_paciente.html", context)
+
+        if not code or len(code) < 4:
+            context["error"] = "El código de historial / DNI es obligatorio y debe tener al menos 4 caracteres."
+            return render(request, "core/registro_paciente.html", context)
+
         if age <= 0 or age > 120:
-            context["error"] = "Ingrese una edad valida."
+            context["error"] = "La edad ingresada no es válida (debe ser entre 1 y 120 años)."
             return render(request, "core/registro_paciente.html", context)
+
+        if sex not in ["M", "F", "Otro"]:
+            context["error"] = "Seleccione un género válido."
+            return render(request, "core/registro_paciente.html", context)
+
         if Patient.objects.filter(doctor=request.user, code=code).exists():
-            context["error"] = "Ya existe un paciente con ese codigo."
+            context["error"] = "Ya existe un paciente registrado con este código."
             return render(request, "core/registro_paciente.html", context)
+
+        # Creación segura
         patient = Patient.objects.create(
-            doctor=request.user, full_name=full_name, code=code,
-            age=age, sex=sex, other_allergies=other_allergies,
+            doctor=request.user,
+            full_name=full_name,
+            code=code,
+            age=age,
+            sex=sex,
+            other_allergies=other_allergies,
             medical_background=medical_background,
         )
+
         selected_ids = []
         for allergy in allergies:
-            if "allergy_" + str(allergy.pk) in request.POST:
+            if f"allergy_{allergy.pk}" in request.POST:
                 selected_ids.append(allergy.pk)
+        
         if selected_ids:
             patient.allergies.set(selected_ids)
 
         context["success"] = f"{full_name} ({code})"
         context["patient_id"] = patient.pk
-        
-        # 1. Si el formulario fue exitoso (POST), mostramos el resumen interactivo de una vez:
+
         return render(request, "core/resumen_paciente.html", {"paciente": patient})
 
-    # 2. Si el médico solo está entrando a ver el formulario vacío (GET), le mostramos el formulario:
     return render(request, "core/registro_paciente.html", context)
-
 
 @login_required(login_url="login")
 @require_http_methods(["GET", "POST"])
