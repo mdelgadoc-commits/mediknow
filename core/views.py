@@ -855,3 +855,46 @@ def eliminar_paciente(request, pk):
     paciente.delete()
     messages.success(request, f"Paciente '{paciente.full_name}' eliminado correctamente.")
     return redirect('pacientes') 
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from .models import Disease, Symptom, DiseaseSymptomRelation
+
+def eliminar_disease(request, pk):
+    if request.method == 'POST':
+        disease = get_object_or_404(Disease, pk=pk)
+        
+        # Verificamos si tiene alguna relación activa con síntomas
+        tiene_relaciones = DiseaseSymptomRelation.objects.filter(disease=disease).exists()
+        
+        if not tiene_relaciones:
+            # Caso A: No está en ninguna tripleta -> Borrado directo
+            nombre = disease.name
+            disease.delete()
+            messages.success(request, f"La enfermedad '{nombre}' fue eliminada por completo.")
+        else:
+            # Caso B: Sí tiene relaciones -> Marcamos inconsistencia (o lanzamos advertencia)
+            # Si tienes un campo 'is_active' implementado, puedes cambiarlo aquí.
+            # Por ahora, para que no te dé error, borramos la relación primero en cascada
+            # o avisamos al usuario:
+            disease.delete() # Borrará la enfermedad y sus relaciones asociadas en cascada
+            messages.warning(request, f"Se eliminó '{disease.name}' junto con todas sus relaciones asociadas para resolver la inconsistencia.")
+            
+    return redirect('home') # O la ruta de tu lista de enfermedades
+def eliminar_sintoma(request, pk):
+    if request.method == 'POST':
+        sintoma = get_object_or_404(Symptom, pk=pk)
+
+        # Verificamos si este síntoma está asociado a alguna enfermedad
+        tiene_relaciones = DiseaseSymptomRelation.objects.filter(symptom=sintoma).exists()
+
+        if not tiene_relaciones:
+            # Caso A: Está huérfano, borrado directo
+            nombre = sintoma.name
+            sintoma.delete()
+            messages.success(request, f"El síntoma '{nombre}' fue eliminado por completo.")
+        else:
+            # Caso B: Tiene relaciones, lo eliminamos en cascada para limpiar la inconsistencia
+            sintoma.delete()
+            messages.warning(request, f"Se eliminó el síntoma '{sintoma.name}' y sus relaciones con enfermedades para solucionar la inconsistencia.")
+
+    return redirect('lista_sintomas') # Asegúrate de que esta sea tu ruta de lista de síntomas

@@ -28,9 +28,10 @@
                 <td style="padding: 12px;">{{ sintoma.description }}</td>
                 <td style="padding: 12px;">{{ sintoma.relevance }}</td>
                 <td style="padding: 12px; text-align: center;">
-                    <a href="{% url 'eliminar_sintoma' sintoma.pk %}" 
-                       onclick="return confirm('¿Estás seguro de que deseas eliminar este síntoma?');" 
-                       style="color: #dc2626; text-decoration: none; font-weight: bold; font-size: 0.9rem;">🗑️ Eliminar</a>
+                    <form action="{% url 'eliminar_sintoma' sintoma.pk %}" method="POST" style="display:inline;" onsubmit="return confirm('¿De verdad quieres eliminar este síntoma?');">
+                        {% csrf_token %}
+                        <button type="submit" style="background: none; border: none; color: #dc2626; cursor: pointer; font-weight: bold; font-size: 0.9rem; padding: 0;">🗑️ Eliminar</button>
+                    </form>
                 </td>
             </tr>
             {% empty %}
