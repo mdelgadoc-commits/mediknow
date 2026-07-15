@@ -24,28 +24,29 @@
         </thead>
         <tbody>
             {% for disease in diseases %}
-            <tr style="border-bottom: 1px solid var(--border-color, #e2e8f0);">
-                <td style="padding: 12px; font-weight: bold;">{{ disease.name }}</td>
-                <td style="padding: 12px;">{{ disease.category.name }}</td>
-                <td style="padding: 12px;">{{ disease.cie10_code|default:"—" }}</td>
-                <td style="padding: 12px;">{{ disease.cie11_code|default:"—" }}</td>
-                <!-- Columna del Tachito utilizando 'eliminar_disease' -->
+            <tr>
+                <!-- Asegúrate de mantener tus columnas de datos normales aquí arriba -->
+                <td style="padding: 12px;">{{ disease.name }}</td>
+                <td style="padding: 12px;">{{ disease.description }}</td>
+                
+                <!-- Columna de Estado (Solo checks, sin botón de eliminar) -->
                 <td style="padding: 12px; text-align: center;">
-                    <form action="{% url 'eliminar_disease' disease.pk %}" method="POST" style="display:inline;" onsubmit="return confirm('¿De verdad quieres eliminar esta enfermedad?');">
-                        {% csrf_token %}
-                        <button type="submit" style="background: none; border: none; color: #dc2626; cursor: pointer; font-size: 1rem; transition: transform 0.2s; padding: 0;" title="Eliminar enfermedad">
-                            🗑️
-                        </button>
-                    </form>
+                    {% if not disease.es_inconsistente %}
+                        <span title="Esta enfermedad tiene síntomas y tratamientos asignados." style="font-size: 1.1rem; cursor: help;">
+                            ✅
+                        </span>
+                    {% else %}
+                        <span title="Inconsistente (Le faltan datos)" style="font-size: 1.1rem; cursor: help; filter: grayscale(100%); opacity: 0.5;">
+                            ⚠️
+                        </span>
+                    {% endif %}
                 </td>
             </tr>
-            {% empty %}
-            <tr data-table-empty="true">
-                <td colspan="5" style="padding: 24px; text-align: center; color: var(--gray-500, #64748b);">
-                    No se encontraron enfermedades registradas.
-                </td>
+        {% empty %}
+            <tr>
+                <td colspan="3" style="text-align: center; padding: 12px;">No hay enfermedades registradas.</td>
             </tr>
-            {% endfor %}
+        {% endfor %}
         </tbody>
     </table>
 </div>

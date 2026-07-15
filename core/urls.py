@@ -33,4 +33,12 @@ urlpatterns = [
     path('sintoma/eliminar/<int:pk>/', views.eliminar_sintoma, name='eliminar_sintoma'),
     path('tratamiento/eliminar/<int:pk>/', views.eliminar_tratamiento, name='eliminar_tratamiento'),
     path('paciente/eliminar/<int:pk>/', views.eliminar_paciente, name='eliminar_paciente'),
+    path('reportes/exportar/pdf/', views.exportar_reporte_real, name='exportar_reporte_real'),
+
+    # Reporte 1: Inconsistencias de la base de conocimiento
+    path('reportes/exportar/pdf/', views.exportar_reporte_real, name='exportar_reporte_real'),
+
+    # Reporte 2: Historial clínico detallado de un paciente individual
+    path('paciente/<int:paciente_id>/historial/pdf/', views.exportar_historial_paciente, name='exportar_historial_paciente'),
+
 ]

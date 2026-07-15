@@ -40,4 +40,16 @@
   <pre style="background:var(--gray-50); border:1px solid var(--gray-200); border-radius:var(--radius-md); padding:1rem; margin-top:.75rem; white-space:pre-wrap; font-size:.8rem;">{{ reporte_texto }}</pre>
 </details>
 
+<!-- Sección de Descarga de Reporte de Inconsistencias -->
+<div class="card" style="margin-top: 20px; border: 1px solid #dee2e6; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+    <div class="card-body" style="padding: 20px;">
+        <h5 style="color: #1e3a8a; margin-top: 0;">Reporte de Inconsistencias en la Base de Conocimiento</h5>
+        <p style="color: #6c757d; font-size: 0.9rem;">
+            Genera un documento PDF detallado que identifica las enfermedades que actualmente no cuentan con síntomas o tratamientos asociados en el sistema.
+        </p>
+        <a href="{% url 'exportar_reporte_real' %}" class="btn" style="display: inline-block; background-color: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 0.95rem; border: none; cursor: pointer; transition: background 0.2s;">
+            📊 Descargar Reporte PDF
+        </a>
+    </div>
+</div>
 {% endblock %}

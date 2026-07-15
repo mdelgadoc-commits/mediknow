@@ -198,18 +198,57 @@ def actualizar_antecedentes(request):
     except Patient.DoesNotExist:
         messages.error(request, "No se encontro el paciente indicado.")
     return redirect(f"/sintomas/?patient={patient_id}")
+def exportar_reporte_real(request):
+    from django.http import HttpResponse
+    from reportlab.lib.pagesizes import letter
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from .models import Disease
 
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="reporte_inconsistencias_mediknow.pdf"'
+    
+    doc = SimpleDocTemplate(response, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
+    story = []
 
-@login_required(login_url="login")
-@require_http_methods(["POST"])
-def exportar_reporte(request):
-    plain_report = request.POST.get("plain_report", "")
-    patient_code = request.POST.get("patient_code", "caso")
-    filename = "mediknow_" + patient_code.replace(" ", "_") + ".txt"
-    response = HttpResponse(plain_report, content_type="text/plain; charset=utf-8")
-    response["Content-Disposition"] = 'attachment; filename="' + filename + '"'
+    # Estilos profesionales
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle('TitleStyle', parent=styles['Heading1'], fontSize=18, textColor=colors.HexColor("#1e3a8a"), spaceAfter=12)
+    heading_style = ParagraphStyle('HeadingStyle', parent=styles['Heading2'], fontSize=12, textColor=colors.HexColor("#1e3a8a"), spaceBefore=12, spaceAfter=6)
+    alert_style = ParagraphStyle('Alert', parent=styles['Normal'], fontSize=9.5, textColor=colors.HexColor("#991b1b"), spaceAfter=4)
+    success_style = ParagraphStyle('Success', parent=styles['Normal'], fontSize=9.5, textColor=colors.HexColor("#15803d"))
+
+    story.append(Paragraph("MediKnow — Sistema de Inferencia Clínica", title_style))
+    story.append(Paragraph("REPORTE DE INCONSISTENCIAS EN LA BASE DE CONOCIMIENTO", heading_style))
+    story.append(Spacer(1, 10))
+
+    # CONSULTAS CORREGIDAS (Usando tus relaciones reales de la base de datos)
+    enfermedades_sin_sintomas = Disease.objects.filter(symptom_relations__isnull=True)
+    enfermedades_sin_tratamiento = Disease.objects.filter(treatment_relations__isnull=True)
+
+    # 1. Sección de Enfermedades sin Síntomas
+    story.append(Paragraph(f"▶ Enfermedades sin síntomas definidos ({enfermedades_sin_sintomas.count()})", heading_style))
+    story.append(Spacer(1, 5))
+    if enfermedades_sin_sintomas.exists():
+        for enf in enfermedades_sin_sintomas:
+            story.append(Paragraph(f"⚠ INCOHERENCIA: '{enf.name}' (ID: {enf.id}) no tiene síntomas asociados en el sistema.", alert_style))
+    else:
+        story.append(Paragraph("✅ Todas las enfermedades cuentan con síntomas estructurados.", success_style))
+
+    story.append(Spacer(1, 15))
+
+    # 2. Sección de Enfermedades sin Tratamiento
+    story.append(Paragraph(f"▶ Enfermedades sin tratamiento asignado ({enfermedades_sin_tratamiento.count()})", heading_style))
+    story.append(Spacer(1, 5))
+    if enfermedades_sin_tratamiento.exists():
+        for enf in enfermedades_sin_tratamiento:
+            story.append(Paragraph(f"⚠ INCOHERENCIA: '{enf.name}' (ID: {enf.id}) no posee un plan de tratamiento registrado.", alert_style))
+    else:
+        story.append(Paragraph("✅ Todas las enfermedades cuentan con un tratamiento clínico registrado.", success_style))
+
+    doc.build(story)
     return response
-
 
 @login_required(login_url="login")
 @require_http_methods(["GET", "POST"])
@@ -219,8 +258,11 @@ def enfermedades(request):
     categoria medica). Permite agregar nuevas enfermedades, validando
     que existan en el catalogo alineado con CIE-10, CIE-11 y REUNIS.
     """
+    # 1. Traemos las enfermedades ordenadas originalmente
+    diseases_queryset = Disease.objects.select_related("category").order_by("name") # Ajustado a tu ordenación
+
     context = {
-        "diseases": Disease.objects.select_related("category").order_by("name"),
+        "diseases": diseases_queryset,
         "errors": {},
         "success": None,
         "form_values": {"name": "", "description": "", "category": ""},
@@ -237,32 +279,46 @@ def enfermedades(request):
         if not name or not description or not category:
             context["errors"]["general"] = "Todos los campos son obligatorios."
         else:
-            is_valid, errors, entry = validate_new_disease(name, description, category)
+            is_valid, errors, entry = validate_new_disease(name, description, category) # Tu validador CIE/REUNIS
             if not is_valid:
                 context["errors"] = errors
             elif Disease.objects.filter(name__iexact=entry["name"]).exists():
-                context["errors"]["name"] = "Esta enfermedad ya esta registrada."
+                context["errors"]["name"] = "Esta enfermedad ya está registrada."
             else:
                 medical_category, _ = MedicalCategory.objects.get_or_create(
                     name=entry["category"],
-                    defaults={"description": "Categoria alineada con CIE-10/CIE-11/REUNIS."},
+                    defaults={"description": "Categoría alineada con estándares internacionales."}
                 )
                 Disease.objects.create(
                     name=entry["name"],
                     description=description,
                     category=medical_category,
-
                     cie10_code=entry["cie10"],
                     cie11_code=entry["cie11"],
                     reunis_capitulo=entry["reunis_capitulo"],
                 )
-                context["success"] = f'Enfermedad "{entry["name"]}" registrada correctamente.'
+                context["success"] = f'Enfermedad "{entry["name"]}" registrada con éxito.'
                 context["form_values"] = {"name": "", "description": "", "category": ""}
                 context["show_form"] = False
-                context["diseases"] = Disease.objects.select_related("category").order_by("name")
+                # Recargamos el queryset si se creó una nueva
+                diseases_queryset = Disease.objects.select_related("category").order_by("name")
+
+    # ==========================================
+    # CÁLCULO DE INCONSISTENCIA EN TIEMPO REAL
+    # ==========================================
+    # Iteramos sobre el queryset para marcar cuáles son inconsistentes antes de renderizar
+    for enf in diseases_queryset:
+        # Una enfermedad es inconsistente si no tiene síntomas OR no tiene tratamientos asociados
+        tiene_sintomas = enf.symptom_relations.exists()
+        tiene_tratamientos = enf.treatment_relations.exists()
+        
+        # Le inyectamos la propiedad al objeto en memoria
+        enf.es_inconsistente = not (tiene_sintomas and tiene_tratamientos)
+
+    # Actualizamos el contexto con los objetos ya procesados
+    context["diseases"] = diseases_queryset
 
     return render(request, "core/enfermedades.html", context)
-
 @login_required(login_url="login")
 @require_http_methods(["GET", "POST"])
 def sintomas(request):
@@ -601,11 +657,11 @@ def exportar_reporte(request):
 
     enfermedades_sin_sintomas = Disease.objects.none()
     if hasattr(Disease, 'sintomas'): enfermedades_sin_sintomas = Disease.objects.filter(sintomas__isnull=True)
-    elif hasattr(Disease, 'symptoms'): enfermedades_sin_sintomas = Disease.objects.filter(symptoms__isnull=True)
+    elif hasattr(Disease, 'symptoms'): enfermedades_sin_sintomas = Disease.objects.filter(symptom_relations__isnull=True)
 
     enfermedades_sin_tratamiento = Disease.objects.none()
     if hasattr(Disease, 'tratamientos'): enfermedades_sin_tratamiento = Disease.objects.filter(tratamientos__isnull=True)
-    elif hasattr(Disease, 'treatments'): enfermedades_sin_tratamiento = Disease.objects.filter(treatments__isnull=True)
+    elif hasattr(Disease, 'treatments'): enfermedades_sin_tratamiento = Disease.objects.filter(treatment_relations__isnull=True)
 
     def generar_tabla_reporte(lista_items, tipo_alerta):
         data = [[Paragraph("<b>ID</b>", body_style), Paragraph("<b>Detalle de la Inconsistencia Detectada</b>", body_style)]]
@@ -677,9 +733,9 @@ def exportar_reporte_real(request):
     story.append(Spacer(1, 10))
 
     # Consultas explícitas buscando campos vacíos en las relacionesManyToMany de tu modelo
-    enfermedades_sin_sintomas = Disease.objects.filter(symptoms__isnull=True)
-    enfermedades_sin_tratamiento = Disease.objects.filter(treatments__isnull=True)
-    tratamientos_huerfanos = Treatment.objects.filter(disease__isnull=True)
+    enfermedades_sin_sintomas = Disease.objects.filter(symptom_relations__isnull=True)
+    enfermedades_sin_tratamiento = Disease.objects.filter(treatment_relations__isnull=True)
+    tratamientos_huerfanos = Treatment.objects.filter(disease_relations__isnull=True)
 
     # Añadir Enfermedades sin Síntomas
     story.append(Paragraph(f"▶ Enfermedades sin síntomas definidos ({enfermedades_sin_sintomas.count()})", heading_style))
@@ -868,21 +924,36 @@ def eliminar_tratamiento(request, pk):
         messages.error(request, f"No se puede eliminar '{tratamiento.name}' porque tiene registros médicos asociados.")
     return redirect('tratamientos')
 
+
+
 @login_required
 def eliminar_paciente(request, pk):
+    from django.shortcuts import get_object_or_404, redirect
+    from django.contrib import messages
+    from .models import Patient
+
     paciente = get_object_or_404(Patient, pk=pk)
     
-    # Verificamos si el paciente pertenece al doctor logueado
-    if paciente.doctor_asignado != request.user:
+    # Verificación flexible de propiedad segura
+    es_dueno = True
+    if hasattr(paciente, 'doctor_asignado') and paciente.doctor_asignado:
+        es_dueno = (paciente.doctor_asignado == request.user)
+    elif hasattr(paciente, 'doctor') and paciente.doctor:
+        es_dueno = (paciente.doctor == request.user)
+    elif hasattr(paciente, 'user') and paciente.user:
+        es_dueno = (paciente.user == request.user)
+
+    if not es_dueno and not request.user.is_superuser:
         messages.error(request, "No tienes permisos para eliminar este paciente.")
-        return redirect('pacientes')
-    
+        return redirect('pacientes')  # <-- CAMBIADO AQUÍ
+
     paciente.delete()
-    messages.success(request, f"Paciente '{paciente.full_name}' eliminado correctamente.")
-    return redirect('pacientes') 
-from django.shortcuts import get_object_or_404, redirect
-from django.contrib import messages
-from .models import Disease, Symptom, DiseaseSymptomRelation
+    messages.success(request, "Paciente eliminado correctamente.")
+    return redirect('pacientes')  # <-- CAMBIADO AQUÍ
+
+
+
+
 
 def eliminar_disease(request, pk):
     if request.method == 'POST':
@@ -923,3 +994,71 @@ def eliminar_sintoma(request, pk):
             messages.warning(request, f"Se eliminó el síntoma '{sintoma.name}' y sus relaciones con enfermedades para solucionar la inconsistencia.")
 
     return redirect('lista_sintomas') # Asegúrate de que esta sea tu ruta de lista de síntomas
+def exportar_historial_paciente(request, paciente_id):
+    from django.http import HttpResponse
+    from django.shortcuts import get_object_or_404
+    from reportlab.lib.pagesizes import letter
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from .models import Patient  # Asegúrate de importar tu modelo Patient si varía el nombre
+
+    # Obtener datos del paciente
+    paciente = get_object_or_404(Patient, pk=paciente_id)
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="historial_clinico_{paciente.id}.pdf"'
+
+    doc = SimpleDocTemplate(response, pagesize=letter, rightMargin=45, leftMargin=45, topMargin=45, bottomMargin=45)
+    story = []
+
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=20, textColor=colors.HexColor("#1e3a8a"), spaceAfter=15)
+    subtitle_style = ParagraphStyle('Sub', parent=styles['Heading2'], fontSize=12, textColor=colors.HexColor("#475569"), spaceBefore=10, spaceAfter=10)
+    label_style = ParagraphStyle('Label', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=10, textColor=colors.HexColor("#1e293b"))
+    value_style = ParagraphStyle('Value', parent=styles['Normal'], fontName='Helvetica', fontSize=10)
+
+    # Encabezado
+    story.append(Paragraph("MediKnow — Historial Clínico Oficial", title_style))
+    story.append(Spacer(1, 10))
+
+    # Tabla con Datos de Identidad
+    data = [
+        [Paragraph("Ficha de Registro N°:", label_style), Paragraph(str(paciente.id), value_style),
+         Paragraph("Código Paciente:", label_style), Paragraph(str(getattr(paciente, 'code', 'N/A')), value_style)],
+        [Paragraph("Nombre Completo:", label_style), Paragraph(paciente.name, value_style),
+         Paragraph("Sexo:", label_style), Paragraph(paciente.sex, value_style)],
+        [Paragraph("Edad:", label_style), Paragraph(f"{paciente.age} años", value_style),
+         Paragraph("Fecha Registro:", label_style), Paragraph(paciente.created_at.strftime('%d/%m/%Y %H:%M') if hasattr(paciente, 'created_at') else 'N/A', value_style)],
+    ]
+
+    t = Table(data, colWidths=[110, 150, 110, 150])
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#f8fafc")),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#e2e8f0")),
+        ('PADDING', (0,0), (-1,-1), 8),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+    ]))
+    story.append(t)
+    story.append(Spacer(1, 15))
+
+    # Alergias del Paciente
+    story.append(Paragraph("Alergias Conocidas", subtitle_style))
+    alergias_texto = ", ".join([a.name for a in paciente.allergies.all()]) if hasattr(paciente, 'allergies') and paciente.allergies.exists() else "Ninguna alergia registrada."
+    story.append(Paragraph(alergias_texto, value_style))
+
+    # Otras Alergias Manuales
+    other_allergies = getattr(paciente, 'other_allergies', None)
+    if other_allergies:
+        story.append(Spacer(1, 5))
+        story.append(Paragraph(f"Otras alergias: {other_allergies}", value_style))
+
+    story.append(Spacer(1, 15))
+
+    # Antecedentes Médicos
+    story.append(Paragraph("Antecedentes Médicos de Relevancia", subtitle_style))
+    antecedentes = getattr(paciente, 'medical_background', None) or "Sin antecedentes médicos reportados."
+    story.append(Paragraph(antecedentes, value_style))
+
+    doc.build(story)
+    return response
