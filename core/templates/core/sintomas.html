@@ -2,41 +2,47 @@
 {% block content %}
 <div class="page-header">
     <h2>Síntomas</h2>
-    <p>Registro de síntomas usados por el motor de inferencia, con su nivel de relevancia diagnóstica.</p>
+    <p>Administración de síntomas y manifestaciones clínicas registradas en el sistema.</p>
 </div>
 
 <a href="#" class="button" style="text-decoration: none; display: inline-block; margin-bottom: 1.5rem;">+ Registrar nuevo síntoma</a>
 
-<h3>Síntomas registrados ({{ sintomas|length }})</h3>
+<h3>Síntomas registrados ({{ symptoms|length }})</h3>
 
-{% include "core/_search_box.html" with target_table="symptoms-table" placeholder="Buscar síntomas..." %}
+<!-- ¡Aquí está la súper Lupita de búsqueda inteligente! -->
+{% include "core/_search_box.html" with target_table="sintomas-table" placeholder="Buscar síntomas por nombre, código o descripción..." %}
 
-<div class="card" style="border: 1px solid var(--border-color, #e2e8f0); padding: 1.5rem; background: var(--white, #fff); border-radius: var(--radius-sm, 4px);">
-    <table id="symptoms-table" style="width: 100%; border-collapse: collapse;">
+<div class="card" style="border: 1px solid var(--border-color, #e2e8f0); padding: 1.5rem; background: var(--white, #fff); border-radius: var(--radius-sm, 4px); margin-top: 1rem;">
+    <table id="sintomas-table" style="width: 100%; border-collapse: collapse;">
         <thead>
             <tr style="border-bottom: 2px solid var(--border-color, #e2e8f0);">
-                <th style="padding: 12px; text-align: left;">Nombre</th>
+                <th style="padding: 12px; text-align: left;">Nombre del Síntoma</th>
                 <th style="padding: 12px; text-align: left;">Descripción</th>
-                <th style="padding: 12px; text-align: left;">Relevancia</th>
-                <th style="padding: 12px; text-align: center;">Acciones</th>
+                <th style="padding: 12px; text-align: center; width: 100px;">Acciones</th>
             </tr>
         </thead>
         <tbody>
-            {% for sintoma in sintomas %}
+            {% for symptom in symptoms %}
             <tr style="border-bottom: 1px solid var(--border-color, #e2e8f0);">
-                <td style="padding: 12px; font-weight: bold;">{{ sintoma.name }}</td>
-                <td style="padding: 12px;">{{ sintoma.description }}</td>
-                <td style="padding: 12px;">{{ sintoma.relevance }}</td>
+                <td style="padding: 12px; font-weight: bold; color: var(--primary-color, #1e293b);">
+                    {{ symptom.name }}
+                </td>
+                <td style="padding: 12px; color: var(--gray-600, #475569);">
+                    {{ symptom.description|default:"Sin descripción disponible." }}
+                </td>
+                <!-- Columna del Tachito para eliminar síntoma -->
                 <td style="padding: 12px; text-align: center;">
-                    <form action="{% url 'eliminar_sintoma' sintoma.pk %}" method="POST" style="display:inline;" onsubmit="return confirm('¿De verdad quieres eliminar este síntoma?');">
+                    <form action="{% url 'eliminar_sintoma' symptom.pk %}" method="POST" style="display:inline;" onsubmit="return confirm('¿De verdad quieres eliminar este síntoma?');">
                         {% csrf_token %}
-                        <button type="submit" style="background: none; border: none; color: #dc2626; cursor: pointer; font-weight: bold; font-size: 0.9rem; padding: 0;">🗑️ Eliminar</button>
+                        <button type="submit" style="background: none; border: none; color: #dc2626; cursor: pointer; font-size: 1rem; transition: transform 0.2s; padding: 0;" title="Eliminar síntoma">
+                            🗑️
+                        </button>
                     </form>
                 </td>
             </tr>
             {% empty %}
             <tr data-table-empty="true">
-                <td colspan="4" style="padding: 24px; text-align: center; color: var(--gray-500, #64748b);">
+                <td colspan="3" style="padding: 24px; text-align: center; color: var(--gray-500, #64748b);">
                     No se encontraron síntomas registrados.
                 </td>
             </tr>

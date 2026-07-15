@@ -1,74 +1,52 @@
-{% extends "core/base.html" %}
-{% block title %}Enfermedades — MediKnow{% endblock %}
+{% extends 'core/base.html' %}
 {% block content %}
+<div class="page-header">
+    <h2>Enfermedades</h2>
+    <p>Registro de enfermedades validadas contra CIE-10, CIE-11 y REUNIS.</p>
+</div>
 
-<header class="page-header">
-  <h1>Enfermedades</h1>
+<a href="#" class="button" style="text-decoration: none; display: inline-block; margin-bottom: 1.5rem;">+ Registrar nueva enfermedad</a>
 
-  
-  <h2 style="color: red;">¡PROBANDO CONEXIÓN DE PLANTILLAS!</h2> 
-  <p>Registro de enfermedades validadas contra CIE-10, CIE-11 y REUNIS.</p>
-</header>
+<h3>Enfermedades registradas ({{ diseases|length }})</h3>
 
-{% if success %}
-  <div class="alert-success">{{ success }}</div>
-{% endif %}
-{% if errors.general %}
-  <div class="alert-warning">{{ errors.general }}</div>
-{% endif %}
+{% include "core/_search_box.html" with target_table="diseases-table" placeholder="Buscar por nombre o categoría..." %}
 
-<button type="button" class="btn-diagnose" id="toggle-form-btn"
-        onclick="document.getElementById('disease-form').classList.toggle('visible')">
-  + Registrar nueva enfermedad
-</button>
-
-<form method="post" class="form-card collapsible" id="disease-form" style="margin-top:1.25rem;">
-  {% csrf_token %}
-  <div class="field-group">
-    <label for="id_name">Nombre</label>
-    <input type="text" id="id_name" name="name" value="{{ form_values.name }}" required>
-    {% if errors.name %}<span class="field-error">{{ errors.name }}</span>{% endif %}
-  </div>
-  <div class="field-group">
-    <label for="id_category">Categoría médica</label>
-    <input type="text" id="id_category" name="category" value="{{ form_values.category }}" required>
-    {% if errors.category %}<span class="field-error">{{ errors.category }}</span>{% endif %}
-  </div>
-  <div class="field-group" style="grid-column: 1 / -1;">
-    <label for="id_description">Descripción</label>
-    <textarea id="id_description" name="description" rows="3" required>{{ form_values.description }}</textarea>
-  </div><div style="grid-column: 1 / -1;">
-    <button type="submit" class="btn-diagnose">Guardar enfermedad</button>
-  </div>
-</form>
-
-<section class="results-section">
-  <h2>Enfermedades registradas ({{ diseases|length }})</h2>
-  {% include "core/_search_box.html" with target_table="diseases-table" placeholder="Buscar por nombre o categoría..." %}
-  <table class="data-table" id="diseases-table">
-    <thead>
-      <tr>
-        <th>Nombre</th>
-        <th>Categoría</th>
-        <th>CIE-10</th>
-        <th>CIE-11</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for disease in diseases %}
-      <tr>
-        <td>{{ disease.name }}</td>
-        <td>{{ disease.category.name }}</td>
-        <td>{{ disease.cie10_code|default:"—" }}</td>
-        <td>{{ disease.cie11_code|default:"—" }}</td>
-      </tr>
-      {% empty %}
-      <tr data-table-empty="true">
-        <td colspan="4">Aún no hay enfermedades registradas.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</section>
-
+<div class="card" style="border: 1px solid var(--border-color, #e2e8f0); padding: 1.5rem; background: var(--white, #fff); border-radius: var(--radius-sm, 4px);">
+    <table id="diseases-table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="border-bottom: 2px solid var(--border-color, #e2e8f0);">
+                <th style="padding: 12px; text-align: left;">Nombre</th>
+                <th style="padding: 12px; text-align: left;">Categoría</th>
+                <th style="padding: 12px; text-align: left;">CIE-10</th>
+                <th style="padding: 12px; text-align: left;">CIE-11</th>
+                <th style="padding: 12px; text-align: center;">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for disease in diseases %}
+            <tr style="border-bottom: 1px solid var(--border-color, #e2e8f0);">
+                <td style="padding: 12px; font-weight: bold;">{{ disease.name }}</td>
+                <td style="padding: 12px;">{{ disease.category.name }}</td>
+                <td style="padding: 12px;">{{ disease.cie10_code|default:"—" }}</td>
+                <td style="padding: 12px;">{{ disease.cie11_code|default:"—" }}</td>
+                <!-- Columna del Tachito utilizando 'eliminar_disease' -->
+                <td style="padding: 12px; text-align: center;">
+                    <form action="{% url 'eliminar_disease' disease.pk %}" method="POST" style="display:inline;" onsubmit="return confirm('¿De verdad quieres eliminar esta enfermedad?');">
+                        {% csrf_token %}
+                        <button type="submit" style="background: none; border: none; color: #dc2626; cursor: pointer; font-size: 1rem; transition: transform 0.2s; padding: 0;" title="Eliminar enfermedad">
+                            🗑️
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr data-table-empty="true">
+                <td colspan="5" style="padding: 24px; text-align: center; color: var(--gray-500, #64748b);">
+                    No se encontraron enfermedades registradas.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}

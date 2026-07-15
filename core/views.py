@@ -7,13 +7,28 @@ from django.contrib.auth.models import User
 from django.contrib.auth import login as auth_login
 from django.db.models import Count
 
-from .models import Symptom, ClinicalCase, DiagnosisResult, Allergy, Patient, Disease, MedicalCategory, Treatment, DiseaseSymptomRelation, DiseaseTreatmentRelation
-from .models import Patient
+# Importaciones locales de la app
+from .utils import inferir_categoria_sintoma
+# Importaciones locales de la app
+from .models import (
+    Symptom, 
+    ClinicalCase, 
+    DiagnosisResult, 
+    Allergy, 
+    Patient,
+    MedicalCategory,  
+    Disease           
+)
 
-from .inference_engine import InferenceEngine, check_inconsistencies, format_inconsistencies_report, export_diagnosis_report, format_query_report
+# Importaciones del motor de inferencia y ontología
+from .inference_engine import (
+    InferenceEngine, 
+    check_inconsistencies
+)
+
+
 from . import ontology_catalog
 from .ontology import validate_new_disease
-
 
 @login_required(login_url="login")
 @require_http_methods(["GET"])
@@ -251,12 +266,12 @@ def enfermedades(request):
 @login_required(login_url="login")
 @require_http_methods(["GET", "POST"])
 def sintomas(request):
-    """Registro de sintomas (nombre, descripcion, nivel de relevancia diagnostica)."""
+    """Registro de sintomas (nombre, descripcion, nivel de relevancia diagnostica)"""
     context = {
         "symptoms": Symptom.objects.order_by("-relevance_level", "name"),
         "errors": {},
         "success": None,
-        "form_values": {"name": "", "description": "", "relevance_level": "1"},
+        "form_values": {"name": "", "description": "", "relevance_level": ""},
         "show_form": False,
         "relevance_choices": Symptom.RelevanceLevel.choices,
     }
@@ -274,13 +289,23 @@ def sintomas(request):
         elif Symptom.objects.filter(name__iexact=name).exists():
             context["errors"]["name"] = "Ya existe un sintoma con ese nombre."
         else:
-            Symptom.objects.create(name=name, description=description, relevance_level=int(relevance_level))
+            Symptom.objects.create(name=name, description=description, relevance_level=relevance_level)
             context["success"] = f'Sintoma "{name}" registrado correctamente.'
-            context["form_values"] = {"name": "", "description": "", "relevance_level": "1"}
+            context["form_values"] = {"name": "", "description": "", "relevance_level": ""}
             context["show_form"] = False
             context["symptoms"] = Symptom.objects.order_by("-relevance_level", "name")
 
+    # ==========================================
+    # INFERENCIA SEMÁNTICA DESDE LA ONTOLOGÍA
+    # ==========================================
+    # Recorremos el QuerySet de síntomas en el contexto (tanto para GET como para POST exitosos)
+    # y les inyectamos la categoría de forma temporal para que esté disponible en el HTML.
+    for symptom in context["symptoms"]:
+        symptom.inferred_category = inferir_categoria_sintoma(symptom.name)
+
     return render(request, "core/sintomas.html", context)
+
+
 
 @login_required(login_url="login")
 @require_http_methods(["GET", "POST"])

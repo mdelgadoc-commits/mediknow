@@ -65,16 +65,31 @@
       <!-- Listado de síntomas agrupados -->
       {% if symptoms %}
         <div class="symptoms-section" role="group" aria-label="Lista de síntomas">
-          <div class="symptoms-section-header">
-            <div class="section-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24">
-                <path d="M9 11l3 3L22 4"/>
-                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-              </svg>
+          
+          <!-- Contenedor único del encabezado con título y buscador integrados -->
+          <div class="symptoms-section-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 16px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div class="section-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" style="width: 20px; height: 20px;">
+                  <path d="M9 11l3 3L22 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <h2 style="margin: 0; font-size: 1.2rem;">Síntomas disponibles</h2>
+              <span class="symptom-count" style="margin-left: 8px;">{{ symptoms|length }} síntomas</span>
             </div>
-            <h2>Síntomas disponibles</h2>
-            <span class="symptom-count">{{ symptoms|length }} síntomas</span>
+
+            <!-- Buscador alineado a la derecha -->
+            <div style="position: relative; width: 250px; flex-shrink: 0;">
+              <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none;">🔍</span>
+              <input type="text" id="buscador-sintomas" placeholder="Filtrar síntomas..." 
+                     style="width: 100%; padding: 6px 12px 6px 30px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem; outline: none;"
+                     oninput="filtrarSintomas()">
+            </div>
           </div>
+
+
+
 
           {% for symptom in symptoms %}
           <div class="symptom-row" id="row-{{ symptom.pk }}">
@@ -254,3 +269,4 @@
   <script src="{% static 'core/script.js' %}"></script>
 </body>
 </html>
+

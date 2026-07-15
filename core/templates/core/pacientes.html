@@ -1,37 +1,47 @@
 {% extends 'core/base.html' %}
 {% block content %}
 <div class="page-header">
-    <h2>Listado de Mis Pacientes</h2>
-    <p>Administración y consulta de pacientes asignados a tu perfil.</p>
+    <h2>Pacientes</h2>
+    <p>Administración y registro de pacientes de la clínica.</p>
 </div>
 
-<!-- Agregamos el buscador apuntando a "patients-table" -->
-{% include "core/_search_box.html" with target_table="patients-table" placeholder="Buscar paciente por nombre o código..." %}
+<a href="#" class="button" style="text-decoration: none; display: inline-block; margin-bottom: 1.5rem;">+ Registrar nuevo paciente</a>
+
+<h3>Pacientes registrados ({{ pacientes|length }})</h3>
+
+{% include "core/_search_box.html" with target_table="pacientes-table" placeholder="Buscar por nombre, DNI o historial..." %}
 
 <div class="card" style="border: 1px solid var(--border-color, #e2e8f0); padding: 1.5rem; background: var(--white, #fff); border-radius: var(--radius-sm, 4px);">
-    <!-- Agregamos el ID de la tabla para que el JS la encuentre -->
-    <table id="patients-table" style="width: 100%; border-collapse: collapse;">
+    <table id="pacientes-table" style="width: 100%; border-collapse: collapse;">
         <thead>
             <tr style="border-bottom: 2px solid var(--border-color, #e2e8f0);">
-                <th style="padding: 12px; text-align: left;">Código / ID</th>
-                <th style="padding: 12px; text-align: left;">Nombre Completo</th>
+                <th style="padding: 12px; text-align: left;">Nombre</th>
+                <th style="padding: 12px; text-align: left;">DNI / ID</th>
                 <th style="padding: 12px; text-align: left;">Edad</th>
+                <th style="padding: 12px; text-align: left;">Teléfono</th>
                 <th style="padding: 12px; text-align: center;">Acciones</th>
             </tr>
         </thead>
         <tbody>
             {% for paciente in pacientes %}
             <tr style="border-bottom: 1px solid var(--border-color, #e2e8f0);">
-                <td style="padding: 12px; font-family: monospace;">{{ paciente.code }}</td>
-                <td style="padding: 12px; font-weight: bold;">{{ paciente.full_name }}</td>
-                <td style="padding: 12px;">{{ paciente.age }} años ({% if paciente.gender == 'M' %}Masc{% else %}Fem{% endif %})</td>
+                <td style="padding: 12px; font-weight: bold;">{{ paciente.nombre }} {{ paciente.apellido }}</td>
+                <td style="padding: 12px;">{{ paciente.dni|default:"—" }}</td>
+                <td style="padding: 12px;">{{ paciente.edad|default:"—" }} años</td>
+                <td style="padding: 12px;">{{ paciente.telefono|default:"—" }}</td>
+                <!-- Columna del Tachito para eliminar paciente -->
                 <td style="padding: 12px; text-align: center;">
-                    <a href="{% url 'cuestionario' %}?paciente_id={{ paciente.pk }}" class="button" style="text-decoration: none; padding: 6px 12px; background: var(--blue-600, #2563eb); color: white; border-radius: 4px; font-size: 0.85rem;">Evaluar Síntomas →</a>
+                    <form action="{% url 'eliminar_paciente' paciente.pk %}" method="POST" style="display:inline;" onsubmit="return confirm('¿De verdad quieres eliminar a este paciente? Esta acción no se puede deshacer.');">
+                        {% csrf_token %}
+                        <button type="submit" style="background: none; border: none; color: #dc2626; cursor: pointer; font-size: 1rem; transition: transform 0.2s; padding: 0;" title="Eliminar paciente">
+                            🗑️
+                        </button>
+                    </form>
                 </td>
             </tr>
             {% empty %}
             <tr data-table-empty="true">
-                <td colspan="4" style="padding: 24px; text-align: center; color: var(--gray-500, #64748b);">
+                <td colspan="5" style="padding: 24px; text-align: center; color: var(--gray-500, #64748b);">
                     No se encontraron pacientes registrados.
                 </td>
             </tr>
