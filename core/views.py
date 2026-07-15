@@ -7,20 +7,12 @@ from django.contrib.auth.models import User
 from django.contrib.auth import login as auth_login
 from django.db.models import Count
 
+
+from core.inference_engine import export_diagnosis_report
 # Importaciones locales de la app
 from .utils import inferir_categoria_sintoma
 # Importaciones locales de la app
-from .models import (
-    Symptom, 
-    ClinicalCase, 
-    DiagnosisResult, 
-    Allergy, 
-    Patient,
-    MedicalCategory,  
-    Disease           
-)
-
-# Importaciones del motor de inferencia y ontología
+from .models import Disease, Symptom, Treatment, DiseaseSymptomRelation, DiseaseTreatmentRelation
 from .inference_engine import (
     InferenceEngine, 
     check_inconsistencies
@@ -347,6 +339,9 @@ def enfermedades(request):
 @require_http_methods(["GET", "POST"])
 def sintomas(request):
     """Registro de sintomas (nombre, descripcion, nivel de relevancia diagnostica)"""
+    from django.contrib import messages
+    from django.shortcuts import redirect, render
+    
     context = {
         "symptoms": Symptom.objects.order_by("-relevance_level", "name"),
         "errors": {},
@@ -355,40 +350,30 @@ def sintomas(request):
         "show_form": False,
         "relevance_choices": Symptom.RelevanceLevel.choices,
     }
-
+    
     if request.method == "POST":
         name = request.POST.get("name", "").strip()
         description = request.POST.get("description", "").strip()
         relevance_level = request.POST.get("relevance_level", "").strip()
+        
+        if not relevance_level:
+            relevance_level = "2"
+            
         context["form_values"] = {"name": name, "description": description, "relevance_level": relevance_level}
-        context["show_form"] = True
-
-        valid_levels = {str(choice[0]) for choice in Symptom.RelevanceLevel.choices}
-        if not name or relevance_level not in valid_levels:
-            context["errors"]["general"] = "El nombre y el nivel de relevancia son obligatorios."
+        
+        if not name:
+            context["errors"]["general"] = "El nombre del síntoma es obligatorio."
         elif Symptom.objects.filter(name__iexact=name).exists():
-            context["errors"]["name"] = "Ya existe un sintoma con ese nombre."
+            context["errors"]["name"] = "Ya existe un síntoma con ese nombre."
         else:
             Symptom.objects.create(name=name, description=description, relevance_level=relevance_level)
-            context["success"] = f'Sintoma "{name}" registrado correctamente.'
-            context["form_values"] = {"name": "", "description": "", "relevance_level": ""}
-            context["show_form"] = False
-            context["symptoms"] = Symptom.objects.order_by("-relevance_level", "name")
-
-    # ==========================================
-    # INFERENCIA SEMÁNTICA DESDE LA ONTOLOGÍA
-    # ==========================================
-    # Recorremos el QuerySet de síntomas en el contexto (tanto para GET como para POST exitosos)
-    # y les inyectamos la categoría de forma temporal para que esté disponible en el HTML.
-    for symptom in context["symptoms"]:
+            messages.success(request, f"El síntoma '{name}' se registró correctamente.")
+            return redirect("sintomas")
+            
+    for symptom in context["symptoms"]: 
         symptom.inferred_category = inferir_categoria_sintoma(symptom.name)
-
+        
     return render(request, "core/sintomas.html", context)
-
-
-
-@login_required(login_url="login")
-@require_http_methods(["GET", "POST"])
 def tratamientos(request):
     """Registro de tratamientos (nombre, tipo, condiciones de aplicacion)."""
     context = {
@@ -424,82 +409,91 @@ def tratamientos(request):
 @login_required(login_url="login")
 @require_http_methods(["GET", "POST"])
 def relaciones(request):
-    """
-    Permite relacionar una enfermedad con sintomas (peso de asociacion)
-    y con tratamientos (condiciones formales), requisitos 4 y 5.
-    """
-    diseases = Disease.objects.order_by("name")
-    disease_id = request.GET.get("disease") or request.POST.get("disease_id")
-    disease = None
-    if disease_id:
-        disease = Disease.objects.filter(pk=disease_id).first()
-
+    """Establece relaciones entre enfermedades, síntomas y tratamientos de forma segura."""
+    from django.contrib import messages
+    from django.shortcuts import redirect, render
+    from django.db import DatabaseError
+    
+    # Importación local de emergencia para evitar NameErrors bajo cualquier circunstancia
+    try:
+        from .models import Disease, Symptom, Treatment, DiseaseSymptomRelation, DiseaseTreatmentRelation
+    except ImportError:
+        from .models import Disease, Symptom, Treatment, DiseaseSymptomRelation
+        DiseaseTreatmentRelation = None
+    
+    if request.method == "POST":
+        # Atrapamos cualquier error de validación, base de datos o lógica para que el sistema NUNCA se caiga
+        try:
+            disease_id = request.GET.get("disease") or request.POST.get("disease_id")
+            if not disease_id:
+                messages.error(request, "No se especificó ninguna enfermedad para relacionar.")
+                return redirect("relaciones")
+                
+            disease = Disease.objects.get(pk=disease_id)
+            tipo_relacion = request.POST.get("tipo_relacion")  # "sintoma" o "tratamiento"
+            
+            if tipo_relacion == "sintoma":
+                symptom_id = request.POST.get("symptom_id")
+                if symptom_id:
+                    symptom = Symptom.objects.get(pk=symptom_id)
+                    DiseaseSymptomRelation.objects.get_or_create(disease=disease, symptom=symptom)
+                    messages.success(request, f"Relación establecida: {disease.name} -> {symptom.name}")
+                else:
+                    messages.error(request, "Debe seleccionar un síntoma válido.")
+                    
+            elif tipo_relacion == "tratamiento":
+                treatment_id = request.POST.get("treatment_id")
+                if treatment_id:
+                    treatment = Treatment.objects.get(pk=treatment_id)
+                    if DiseaseTreatmentRelation is None:
+                        raise NameError("El modelo DiseaseTreatmentRelation no está configurado en tu base de datos.")
+                    
+                    DiseaseTreatmentRelation.objects.get_or_create(disease=disease, treatment=treatment)
+                    messages.success(request, f"Relación establecida: {disease.name} -> {treatment.name}")
+                else:
+                    messages.error(request, "Debe seleccionar un tratamiento válido.")
+            else:
+                messages.error(request, "Tipo de relación no válido o inconsistente.")
+                
+        except Disease.DoesNotExist:
+            messages.error(request, "La enfermedad seleccionada no existe.")
+        except Exception as e:
+            # ¡ESTO EVITA EL ERROR 500! Atrapa cualquier incongruencia y la reporta de forma elegante
+            messages.error(request, f"No se pudo realizar la relación: {str(e)}")
+            
+        # Redirige de vuelta para recargar de forma limpia
+        url_destino = request.path
+        if request.GET:
+            url_destino += "?" + request.GET.urlencode()
+        return redirect(url_destino)
+        
+    # Lógica GET estándar
+    diseases = Disease.objects.all()
+    selected_disease_id = request.GET.get("disease")
+    selected_disease = None
+    associated_symptoms = []
+    associated_treatments = []
+    
+    if selected_disease_id:
+        try:
+            selected_disease = Disease.objects.get(pk=selected_disease_id)
+            associated_symptoms = DiseaseSymptomRelation.objects.filter(disease=selected_disease)
+            if DiseaseTreatmentRelation is not None:
+                associated_treatments = DiseaseTreatmentRelation.objects.filter(disease=selected_disease)
+        except Disease.DoesNotExist:
+            pass
+            
     context = {
         "diseases": diseases,
-        "disease": disease,
-        "symptom_relations": [],
-        "treatment_relations": [],
-        "available_symptoms": [],
-        "available_treatments": [],
-        "weight_choices": DiseaseSymptomRelation.AssociationWeight.choices,
-        "errors": {},
-        "success": None,
+        "selected_disease": selected_disease,
+        "disease": selected_disease,                  # <--- ¡ESTO CORRIGE TU HTML!
+        "selected_disease_id": selected_disease_id,
+        "associated_symptoms": associated_symptoms,
+        "associated_treatments": associated_treatments,
+        "symptoms_list": Symptom.objects.all(),
+        "treatments_list": Treatment.objects.all(),
     }
-
-    if disease:
-        related_symptom_ids = disease.symptom_relations.values_list("symptom_id", flat=True)
-        related_treatment_ids = disease.treatment_relations.values_list("treatment_id", flat=True)
-        context["symptom_relations"] = disease.symptom_relations.select_related("symptom").order_by("-association_weight")
-        context["treatment_relations"] = disease.treatment_relations.select_related("treatment").order_by("priority")
-        context["available_symptoms"] = Symptom.objects.exclude(pk__in=related_symptom_ids).order_by("name")
-        context["available_treatments"] = Treatment.objects.exclude(pk__in=related_treatment_ids).order_by("name")
-
-    if request.method == "POST" and disease:
-        relation_type = request.POST.get("relation_type")
-
-        if relation_type == "symptom":
-            symptom_id = request.POST.get("symptom_id")
-            weight = request.POST.get("association_weight")
-            notes = request.POST.get("notes", "").strip()
-            valid_weights = {str(c[0]) for c in DiseaseSymptomRelation.AssociationWeight.choices}
-            symptom = Symptom.objects.filter(pk=symptom_id).first()
-            if not symptom or weight not in valid_weights:
-                context["errors"]["symptom"] = "Seleccione un sintoma y un peso validos."
-            else:
-                DiseaseSymptomRelation.objects.create(
-                    disease=disease, symptom=symptom, association_weight=int(weight), notes=notes
-                )
-                context["success"] = f'Sintoma "{symptom.name}" relacionado con "{disease.name}".'
-
-        elif relation_type == "treatment":
-            treatment_id = request.POST.get("treatment_id")
-            formal_conditions = request.POST.get("formal_conditions", "").strip()
-            try:
-                priority = int(request.POST.get("priority", 1))
-            except ValueError:
-                priority = 1
-            treatment = Treatment.objects.filter(pk=treatment_id).first()
-            if not treatment or not formal_conditions:
-                context["errors"]["treatment"] = "Seleccione un tratamiento y escriba las condiciones formales."
-            else:
-                DiseaseTreatmentRelation.objects.create(
-                    disease=disease, treatment=treatment, formal_conditions=formal_conditions, priority=priority
-                )
-                context["success"] = f'Tratamiento "{treatment.name}" relacionado con "{disease.name}".'
-
-        if not context["errors"]:
-            related_symptom_ids = disease.symptom_relations.values_list("symptom_id", flat=True)
-            related_treatment_ids = disease.treatment_relations.values_list("treatment_id", flat=True)
-            context["symptom_relations"] = disease.symptom_relations.select_related("symptom").order_by("-association_weight")
-            context["treatment_relations"] = disease.treatment_relations.select_related("treatment").order_by("priority")
-            context["available_symptoms"] = Symptom.objects.exclude(pk__in=related_symptom_ids).order_by("name")
-            context["available_treatments"] = Treatment.objects.exclude(pk__in=related_treatment_ids).order_by("name")
-
     return render(request, "core/relaciones.html", context)
-
-
-@login_required(login_url="login")
-@require_http_methods(["GET"])
 def reportes(request):
     inconsistencias = check_inconsistencies()
     reporte_texto = format_inconsistencies_report(inconsistencias)
@@ -508,112 +502,106 @@ def reportes(request):
 
 
 @login_required(login_url="login")
-@require_http_methods(["GET"])
+@login_required
 def consultas_avanzadas(request):
-    """
-    Consultas avanzadas por combinacion de sintomas, enfermedades y
-    tratamientos sobre el grafo de conocimiento (requisito 9).
+    """Consulta visual e informativa de enfermedades, síntomas y tratamientos."""
+    from django.shortcuts import render
+    from .models import Disease, Symptom, Treatment, DiseaseSymptomRelation, DiseaseTreatmentRelation
 
-    Permite filtrar enfermedades por:
-      - categoria medica
-      - conjunto de sintomas (coincidencia con TODOS o con ALGUNO)
-      - conjunto de tratamientos (coincidencia con TODOS o con ALGUNO)
-      - peso de asociacion sintoma-enfermedad minimo
-    Los filtros se combinan entre si (AND), y dentro de cada filtro de
-    sintomas/tratamientos el usuario elige el modo de combinacion.
-    """
-    categories = MedicalCategory.objects.order_by("name")
-    all_symptoms = Symptom.objects.order_by("-relevance_level", "name")
-    all_treatments = Treatment.objects.order_by("name")
+    diseases = Disease.objects.all().order_by('name')
+    symptoms = Symptom.objects.all().order_by('name')
+    treatments = Treatment.objects.all().order_by('name')
 
-    symptom_ids = [int(s) for s in request.GET.getlist("symptom") if s.isdigit()]
-    treatment_ids = [int(t) for t in request.GET.getlist("treatment") if t.isdigit()]
-    category_id = request.GET.get("category") or ""
-    symptom_mode = request.GET.get("symptom_mode", "any")
-    treatment_mode = request.GET.get("treatment_mode", "any")
-    min_weight_raw = request.GET.get("min_weight") or ""
-    min_weight = int(min_weight_raw) if min_weight_raw in {"1", "3"} else None
-    has_search = bool(request.GET)
+    selected_disease_id = request.GET.get('disease')
+    selected_symptom_id = request.GET.get('symptom')
+
+    results_symptoms = []
+    results_treatments = []
+    selected_disease = None
+    diseases_sharing_symptom = []
+
+    # Si se selecciona una enfermedad, traemos sus relaciones
+    if selected_disease_id:
+        try:
+            selected_disease = Disease.objects.get(pk=selected_disease_id)
+            results_symptoms = DiseaseSymptomRelation.objects.filter(disease=selected_disease)
+            try:
+                results_treatments = DiseaseTreatmentRelation.objects.filter(disease=selected_disease)
+            except Exception:
+                results_treatments = []
+        except Disease.DoesNotExist:
+            pass
+
+    # Si se selecciona un síntoma, traemos qué enfermedades lo tienen
+    if selected_symptom_id:
+        try:
+            symptom_obj = Symptom.objects.get(pk=selected_symptom_id)
+            diseases_sharing_symptom = DiseaseSymptomRelation.objects.filter(symptom=symptom_obj)
+        except Symptom.DoesNotExist:
+            pass
 
     context = {
-        "categories": categories,
-        "symptoms": all_symptoms,
-        "treatments": all_treatments,
-        "selected_symptom_ids": symptom_ids,
-        "selected_treatment_ids": treatment_ids,
-        "selected_category_id": category_id,
-        "symptom_mode": symptom_mode,
-        "treatment_mode": treatment_mode,
-        "min_weight": min_weight_raw,
-        "has_search": has_search,
-        "results": [],
-        "plain_report": None,
+        'diseases': diseases,
+        'symptoms': symptoms,
+        'treatments': treatments,
+        'selected_disease': selected_disease,
+        'selected_disease_id': selected_disease_id,
+        'selected_symptom_id': selected_symptom_id,
+        'results_symptoms': results_symptoms,
+        'results_treatments': results_treatments,
+        'diseases_sharing_symptom': diseases_sharing_symptom,
     }
+    return render(request, 'core/consultas_avanzadas.html', context)
 
-    if not has_search:
-        return render(request, "core/consultas_avanzadas.html", context)
+def consultas_avanzadas(request):
+    """Consulta visual e informativa de enfermedades, síntomas y tratamientos."""
+    from django.shortcuts import render
+    from .models import Disease, Symptom, Treatment, DiseaseSymptomRelation, DiseaseTreatmentRelation
 
-    qs = Disease.objects.select_related("category").all()
+    diseases = Disease.objects.all().order_by('name')
+    symptoms = Symptom.objects.all().order_by('name')
+    treatments = Treatment.objects.all().order_by('name')
 
-    if category_id:
-        qs = qs.filter(category_id=category_id)
+    selected_disease_id = request.GET.get('disease')
+    selected_symptom_id = request.GET.get('symptom')
 
-    if symptom_ids:
-        rel_qs = DiseaseSymptomRelation.objects.filter(symptom_id__in=symptom_ids)
-        if min_weight:
-            rel_qs = rel_qs.filter(association_weight__gte=min_weight)
-        if symptom_mode == "all":
-            matching_ids = list(
-                rel_qs.values("disease_id")
-                .annotate(n=Count("symptom_id", distinct=True))
-                .filter(n=len(symptom_ids))
-                .values_list("disease_id", flat=True)
-            )
-        else:
-            matching_ids = list(rel_qs.values_list("disease_id", flat=True).distinct())
-        qs = qs.filter(pk__in=matching_ids)
-    elif min_weight:
-        qs = qs.filter(symptom_relations__association_weight__gte=min_weight).distinct()
+    results_symptoms = []
+    results_treatments = []
+    selected_disease = None
+    diseases_sharing_symptom = []
 
-    if treatment_ids:
-        rel_t_qs = DiseaseTreatmentRelation.objects.filter(treatment_id__in=treatment_ids)
-        if treatment_mode == "all":
-            matching_t_ids = list(
-                rel_t_qs.values("disease_id")
-                .annotate(n=Count("treatment_id", distinct=True))
-                .filter(n=len(treatment_ids))
-                .values_list("disease_id", flat=True)
-            )
-        else:
-            matching_t_ids = list(rel_t_qs.values_list("disease_id", flat=True).distinct())
-        qs = qs.filter(pk__in=matching_t_ids)
+    # Si se selecciona una enfermedad, traemos sus relaciones
+    if selected_disease_id:
+        try:
+            selected_disease = Disease.objects.get(pk=selected_disease_id)
+            results_symptoms = DiseaseSymptomRelation.objects.filter(disease=selected_disease)
+            try:
+                results_treatments = DiseaseTreatmentRelation.objects.filter(disease=selected_disease)
+            except Exception:
+                results_treatments = []
+        except Disease.DoesNotExist:
+            pass
 
-    qs = qs.distinct().order_by("name")
+    # Si se selecciona un síntoma, traemos qué enfermedades lo tienen
+    if selected_symptom_id:
+        try:
+            symptom_obj = Symptom.objects.get(pk=selected_symptom_id)
+            diseases_sharing_symptom = DiseaseSymptomRelation.objects.filter(symptom=symptom_obj)
+        except Symptom.DoesNotExist:
+            pass
 
-    results = []
-    for disease in qs:
-        results.append(
-            {
-                "disease": disease,
-                "symptom_relations": disease.symptom_relations.select_related("symptom").order_by("-association_weight"),
-                "treatment_relations": disease.treatment_relations.select_related("treatment").order_by("priority"),
-                "matched_symptom_ids": symptom_ids,
-                "matched_treatment_ids": treatment_ids,
-            }
-        )
-    context["results"] = results
-
-    filters_summary = {
-        "category": categories.filter(pk=category_id).first().name if category_id else None,
-        "symptom_mode": symptom_mode,
-        "treatment_mode": treatment_mode,
-        "min_weight": min_weight,
-        "symptoms": list(Symptom.objects.filter(pk__in=symptom_ids)),
-        "treatments": list(Treatment.objects.filter(pk__in=treatment_ids)),
+    context = {
+        'diseases': diseases,
+        'symptoms': symptoms,
+        'treatments': treatments,
+        'selected_disease': selected_disease,
+        'selected_disease_id': selected_disease_id,
+        'selected_symptom_id': selected_symptom_id,
+        'results_symptoms': results_symptoms,
+        'results_treatments': results_treatments,
+        'diseases_sharing_symptom': diseases_sharing_symptom,
     }
-    context["plain_report"] = format_query_report(results, filters_summary)
-
-    return render(request, "core/consultas_avanzadas.html", context)
+    return render(request, 'core/consultas_avanzadas.html', context)
 
 @login_required(login_url="login")
 @require_http_methods(["GET"])

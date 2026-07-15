@@ -1,266 +1,110 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Consultas avanzadas — MediKnow</title>
-  {% load static %}
-  <link rel="stylesheet" href="{% static 'core/estilos.css' %}" />
-  <style>
-    /* ── Estilos propios de esta pantalla (extensión mínima) ────────── */
-    .query-form {
-      background: var(--white);
-      border: 1px solid var(--gray-200);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-card);
-      padding: 1.5rem 1.75rem;
-      margin-bottom: 1.5rem;
-    }
-    .query-form fieldset {
-      border: none;
-      margin-bottom: 1.25rem;
-    }
-    .query-form legend {
-      font-family: var(--font-ui);
-      font-weight: 600;
-      font-size: .95rem;
-      color: var(--blue-900);
-      margin-bottom: .6rem;
-    }
-    .mode-toggle {
-      display: inline-flex;
-      gap: 1rem;
-      margin-left: .75rem;
-      font-size: .8rem;
-      color: var(--gray-600);
-      font-weight: 400;
-      vertical-align: middle;
-    }
-    .mode-toggle label { display: inline-flex; align-items: center; gap: .3rem; cursor: pointer; }
-    .checkbox-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: .4rem .75rem;
-      max-height: 260px;
-      overflow-y: auto;
-      padding: .25rem .25rem .25rem 0;
-      border: 1px solid var(--gray-200);
-      border-radius: var(--radius-md);
-      padding: .75rem;
-    }
-    .checkbox-grid label {
-      display: flex;
-      align-items: center;
-      gap: .45rem;
-      font-size: .85rem;
-      color: var(--gray-900);
-      cursor: pointer;
-      padding: .2rem 0;
-    }
-    .checkbox-grid input[type="checkbox"] { accent-color: var(--blue-700); width: 16px; height: 16px; }
-    .query-form select {
-      font-family: var(--font-body);
-      font-size: .9rem;
-      padding: .55rem .7rem;
-      border: 1px solid var(--gray-200);
-      border-radius: var(--radius-sm);
-      background: var(--white);
-      color: var(--gray-900);
-      min-width: 220px;
-    }
-    .filters-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1.5rem;
-      margin-bottom: .25rem;
-    }
-    .filters-row > div { display: flex; flex-direction: column; gap: .4rem; }
-    .filters-row label.field-label { font-size: .8rem; font-weight: 600; color: var(--gray-600); }
-    .query-form-footer { display: flex; align-items: center; gap: 1rem; margin-top: .5rem; }
-    .btn-clear {
-      font-family: var(--font-ui);
-      font-size: .85rem;
-      color: var(--blue-700);
-      background: none;
-      border: none;
-      text-decoration: underline;
-      cursor: pointer;
-      padding: 0;
-    }
-    .result-item { margin-bottom: 1rem; }
-    .result-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: .5rem; }
-    @media (max-width: 720px) { .result-columns { grid-template-columns: 1fr; } }
-    .result-columns h4 { font-size: .8rem; color: var(--gray-600); margin-bottom: .4rem; }
-    .result-columns ul { list-style: none; display: flex; flex-direction: column; gap: .3rem; }
-    .result-columns li {
-      font-size: .85rem;
-      display: flex;
-      align-items: center;
-      gap: .4rem;
-    }
-    .match-star { color: var(--amber-600); font-weight: 700; }
-    .no-match-dot { color: var(--gray-400); }
-  </style>
-</head>
-<body>
+{% extends 'core/base.html' %}
 
-  <nav class="navbar" role="banner">
-    <a class="navbar-brand" href="{% url 'menu' %}">
-      <div class="logo-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
-             stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-          <path d="M2 17l10 5 10-5"/>
-          <path d="M2 12l10 5 10-5"/>
-        </svg>
-      </div>
-      <span>Medi<em>Know</em></span>
-    </a>
-    <span class="navbar-meta">Consultas avanzadas</span>
-  </nav>
+{% block content %}
+<header class="main-header" style="margin-bottom: 2rem;">
+  <h1>🔍 Centro de Consultas Clínicas</h1>
+  <p>Cruza información médica al instante para explorar cuadros clínicos, sintomatología y tratamientos comunes.</p>
+</header>
 
-  <main class="page-wrapper">
-    <header class="page-header">
-      <h1>Consultas avanzadas</h1>
-      <p>Busque enfermedades combinando síntomas, tratamientos, categoría médica y peso de asociación sobre el grafo de conocimiento.</p>
-    </header>
-
-    <form method="GET" action="{% url 'consultas_avanzadas' %}" class="query-form">
-
-      <div class="filters-row">
-        <div>
-          <label class="field-label" for="category">Categoría médica</label>
-          <select name="category" id="category">
-            <option value="">— Todas las categorías —</option>
-            {% for cat in categories %}
-              <option value="{{ cat.pk }}" {% if selected_category_id|stringformat:"s" == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div>
-          <label class="field-label" for="min_weight">Peso de asociación mínimo</label>
-          <select name="min_weight" id="min_weight">
-            <option value="">— Cualquier peso —</option>
-            <option value="1" {% if min_weight == "1" %}selected{% endif %}>Menor (peso 1)</option>
-            <option value="3" {% if min_weight == "3" %}selected{% endif %}>Mayor / Patognomónico (peso 3)</option>
-          </select>
-        </div>
-      </div>
-
-      <fieldset>
-        <legend>
-          Síntomas
-          <span class="mode-toggle">
-            <label><input type="radio" name="symptom_mode" value="any" {% if symptom_mode == "any" %}checked{% endif %}> Coincidir con ALGUNO</label>
-            <label><input type="radio" name="symptom_mode" value="all" {% if symptom_mode == "all" %}checked{% endif %}> Coincidir con TODOS</label>
-          </span>
-        </legend>
-        <div class="checkbox-grid">
-          {% for symptom in symptoms %}
-            <label>
-              <input type="checkbox" name="symptom" value="{{ symptom.pk }}" {% if symptom.pk in selected_symptom_ids %}checked{% endif %}>
-              {{ symptom.name }}
-            </label>
-          {% empty %}
-            <p class="disease-desc">No hay síntomas registrados.</p>
-          {% endfor %}
-        </div>
-      </fieldset>
-
-      <fieldset>
-        <legend>
-          Tratamientos
-          <span class="mode-toggle">
-            <label><input type="radio" name="treatment_mode" value="any" {% if treatment_mode == "any" %}checked{% endif %}> Coincidir con ALGUNO</label>
-            <label><input type="radio" name="treatment_mode" value="all" {% if treatment_mode == "all" %}checked{% endif %}> Coincidir con TODOS</label>
-          </span>
-        </legend>
-        <div class="checkbox-grid">
-          {% for treatment in treatments %}
-            <label>
-              <input type="checkbox" name="treatment" value="{{ treatment.pk }}" {% if treatment.pk in selected_treatment_ids %}checked{% endif %}>
-              {{ treatment.name }} <span style="color:var(--gray-400)">({{ treatment.get_treatment_type_display }})</span>
-            </label>
-          {% empty %}
-            <p class="disease-desc">No hay tratamientos registrados.</p>
-          {% endfor %}
-        </div>
-      </fieldset>
-
-      <div class="query-form-footer">
-        <button type="submit" class="btn-diagnose">Buscar</button>
-        <a class="btn-clear" href="{% url 'consultas_avanzadas' %}">Limpiar filtros</a>
-      </div>
+<!-- Filtros de Consulta Directos -->
+<div class="form-card" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; padding: 1.5rem;">
+  
+  <!-- Buscar por Enfermedad -->
+  <div class="field-group">
+    <label style="font-weight: bold; margin-bottom: 0.5rem; display: block; color: #333;">📖 Seleccionar Patología</label>
+    <form method="get">
+      <select name="disease" onchange="this.form.submit()" style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+        <option value="">— Seleccionar Enfermedad —</option>
+        {% for d in diseases %}
+          <option value="{{ d.pk }}" {% if selected_disease_id|stringformat:"s" == d.pk|stringformat:"s" %}selected{% endif %}>{{ d.name }}</option>
+        {% endfor %}
+      </select>
     </form>
+  </div>
 
-    {% if has_search %}
-      <div class="disease-list">
+  <!-- Buscar por Síntoma Común -->
+  <div class="field-group">
+    <label style="font-weight: bold; margin-bottom: 0.5rem; display: block; color: #333;">🩺 Buscar por Síntoma</label>
+    <form method="get">
+      <select name="symptom" onchange="this.form.submit()" style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+        <option value="">— Seleccionar Síntoma —</option>
+        {% for s in symptoms %}
+          <option value="{{ s.pk }}" {% if selected_symptom_id|stringformat:"s" == s.pk|stringformat:"s" %}selected{% endif %}>{{ s.name }}</option>
+        {% endfor %}
+      </select>
+    </form>
+  </div>
 
-        {% if not results %}
-          <div class="alert-warning" role="alert">
-            No se encontraron enfermedades que cumplan los filtros indicados. Pruebe con "ALGUNO" en vez de "TODOS", o reduzca los filtros.
-          </div>
-        {% else %}
-          <div class="alert-success" role="status">Se encontraron {{ results|length }} enfermedad(es).</div>
+</div>
 
-          {% for item in results %}
-          <article class="disease-card result-item">
-            <div class="disease-card-header">
-              <h3>{{ item.disease.name }}</h3>
-              <span class="category-badge">{{ item.disease.category.name }}</span>
-            </div>
-            <p class="disease-desc">{{ item.disease.description }}</p>
-            <div class="disease-codes">
-              {% if item.disease.cie10_code %}<span class="code-pill">CIE-10: {{ item.disease.cie10_code }}</span>{% endif %}
-              {% if item.disease.cie11_code %}<span class="code-pill">CIE-11: {{ item.disease.cie11_code }}</span>{% endif %}
-              {% if item.disease.reunis_capitulo %}<span class="code-pill code-pill-reunis">REUNIS: {{ item.disease.reunis_capitulo }}</span>{% endif %}
-            </div>
+<!-- AREA DE RESULTADOS INFORMATIVOS -->
 
-            <div class="result-columns">
-              <div>
-                <h4>Síntomas asociados</h4>
-                <ul>
-                  {% for rel in item.symptom_relations %}
-                    <li>
-                      {% if rel.symptom_id in item.matched_symptom_ids %}<span class="match-star">★</span>{% else %}<span class="no-match-dot">•</span>{% endif %}
-                      {{ rel.symptom.name }}
-                      <span class="weight-badge {% if rel.association_weight == 3 %}weight-3{% else %}weight-1{% endif %}">peso {{ rel.association_weight }}</span>
-                    </li>
-                  {% empty %}
-                    <li class="disease-desc">Sin síntomas asociados.</li>
-                  {% endfor %}
-                </ul>
-              </div>
-              <div>
-                <h4>Tratamientos asociados</h4>
-                <ul>
-                  {% for rel in item.treatment_relations %}
-                    <li>
-                      {% if rel.treatment_id in item.matched_treatment_ids %}<span class="match-star">★</span>{% else %}<span class="no-match-dot">•</span>{% endif %}
-                      [{{ rel.priority }}ª línea] {{ rel.treatment.name }}
-                    </li>
-                  {% empty %}
-                    <li class="disease-desc">Sin tratamientos asociados.</li>
-                  {% endfor %}
-                </ul>
-              </div>
-            </div>
-          </article>
+<!-- Caso A: Si seleccionó Enfermedad -->
+{% if selected_disease %}
+<div class="form-card" style="border-top: 5px solid #0284c7; background: #fff; padding: 2rem; border-radius: 8px;">
+  <h2 style="color: #0284c7; margin-top: 0; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+    📘 Cuadro Médico: {{ selected_disease.name }}
+  </h2>
+  
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+    <!-- Síntomas -->
+    <div>
+      <h4 style="color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1rem;">🩺 Síntomas Asociados</h4>
+      {% if results_symptoms %}
+        <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.75rem;">
+          {% for r in results_symptoms %}
+            <li style="background: #f8fafc; padding: 0.75rem 1rem; border-radius: 6px; border-left: 3px solid #38bdf8;">
+              <strong style="color: #1e293b;">{{ r.symptom.name }}</strong>
+              {% if r.association_weight %} <span style="font-size: 0.8rem; background: #e0f2fe; color: #0369a1; padding: 1px 6px; border-radius: 10px; margin-left: 5px;">Frecuencia: {{ r.association_weight }}</span>{% endif %}
+            </li>
           {% endfor %}
-        {% endif %}
-      </div>
-
-      {% if plain_report %}
-      <form method="POST" action="{% url 'exportar_reporte' %}" style="margin-top:1.5rem;">
-        {% csrf_token %}
-        <textarea name="plain_report" hidden>{{ plain_report }}</textarea>
-        <input type="hidden" name="patient_code" value="consulta_avanzada">
-        <button type="submit" class="btn-diagnose">Descargar reporte (.txt)</button>
-      </form>
+        </ul>
+      {% else %}
+        <p style="color: #64748b; font-style: italic;">No hay síntomas cargados para esta patología.</p>
       {% endif %}
-    {% endif %}
+    </div>
 
-  </main>
+    <!-- Tratamientos -->
+    <div>
+      <h4 style="color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1rem;">💊 Tratamientos de Referencia</h4>
+      {% if results_treatments %}
+        <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.75rem;">
+          {% for t in results_treatments %}
+            <li style="background: #f8fafc; padding: 0.75rem 1rem; border-radius: 6px; border-left: 3px solid #4ade80;">
+              <strong style="color: #1e293b;">{{ t.treatment.name }}</strong>
+              {% if t.priority %} <span style="font-size: 0.8rem; background: #dcfce7; color: #15803d; padding: 1px 6px; border-radius: 10px; margin-left: 5px;">Línea {{ t.priority }}</span>{% endif %}
+              {% if t.conditions %}<p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: #64748b; font-style: italic;">Condición: {{ t.conditions }}</p>{% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p style="color: #64748b; font-style: italic;">No hay tratamientos cargados para esta patología.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
 
-</body>
-</html>
+<!-- Caso B: Si filtró por Síntoma -->
+{% elif selected_symptom_id and diseases_sharing_symptom %}
+<div class="form-card" style="border-top: 5px solid #f59e0b; background: #fff; padding: 2rem; border-radius: 8px;">
+  <h2 style="color: #d97706; margin-top: 0; margin-bottom: 1rem;">
+    🔬 Patologías que presentan este síntoma:
+  </h2>
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
+    {% for r in diseases_sharing_symptom %}
+      <div style="background: #fffbeb; border: 1px solid #fde68a; padding: 1rem; border-radius: 8px;">
+        <h4 style="margin: 0 0 0.5rem 0; color: #b45309;">{{ r.disease.name }}</h4>
+        <a href="?disease={{ r.disease.pk }}" style="color: #d97706; font-size: 0.9rem; font-weight: 500; text-decoration: none;">Ver cuadro completo →</a>
+      </div>
+    {% endfor %}
+  </div>
+
+<!-- Caso C: Estado de Espera Inicial -->
+{% else %}
+<div class="form-card" style="text-align: center; padding: 4rem 2rem; color: #94a3b8; background: #fff; border-radius: 8px;">
+  <span style="font-size: 3.5rem; display: block; margin-bottom: 1rem;">🔍</span>
+  <h3 style="color: #475569; margin-bottom: 0.5rem;">Explora Información Clínica</h3>
+  <p style="margin: 0; font-size: 1rem;">Usa los selectores superiores para ver los síntomas/tratamientos de una patología, o para descubrir qué enfermedades comparten un síntoma particular.</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,5 +1,34 @@
 {% extends "core/base.html" %}
-{% block title %}Tratamientos — MediKnow{% endblock %}
+{% block title %}Tratamientos — MediKnow
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search-tratamientos');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const query = this.value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+            // Busca la tabla (asume un id que contenga 'tratamiento' o simplemente la primera tabla de la página)
+            const tabla = document.querySelector('table[id*="tratamiento"]') || document.querySelector('table');
+            
+            const filas = tabla.querySelectorAll('tr');
+            filas.forEach((fila, index) => {
+                // Saltamos la fila de cabecera
+                if (index === 0 || fila.querySelector('th') || fila.getAttribute('data-table-empty') === 'true') {
+                    return;
+                }
+                
+                const texto = fila.textContent.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+                if (texto.includes(query)) {
+                    fila.style.setProperty('display', '', 'important');
+                } else {
+                    fila.style.setProperty('display', 'none', 'important');
+                }
+            });
+        });
+    }
+});
+</script>
+
+{% endblock %}
 {% block content %}
 
 <header class="page-header">
@@ -42,7 +71,13 @@
 
 <section class="results-section">
   <h2>Tratamientos registrados ({{ treatments|length }})</h2>
-  <table class="data-table">
+  
+<div style="margin-bottom: 1.5rem; position: relative; max-width: 400px;">
+    <input type="text" id="search-tratamientos" placeholder="Buscar tratamientos por nombre, descripción o asociación..." 
+           style="width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; border: 1px solid var(--border-color, #cbd5e1); border-radius: 6px; box-sizing: border-box; font-size: 0.95rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+    <span style="position: absolute; left: 0.9rem; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 1rem;">🔍</span>
+</div>
+<table class="data-table">
     <thead>
       <tr><th>Nombre</th><th>Tipo</th><th>Condiciones</th></tr>
     </thead>
@@ -59,5 +94,34 @@
     </tbody>
   </table>
 </section>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search-tratamientos');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const query = this.value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+            // Busca la tabla (asume un id que contenga 'tratamiento' o simplemente la primera tabla de la página)
+            const tabla = document.querySelector('table[id*="tratamiento"]') || document.querySelector('table');
+            
+            const filas = tabla.querySelectorAll('tr');
+            filas.forEach((fila, index) => {
+                // Saltamos la fila de cabecera
+                if (index === 0 || fila.querySelector('th') || fila.getAttribute('data-table-empty') === 'true') {
+                    return;
+                }
+                
+                const texto = fila.textContent.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+                if (texto.includes(query)) {
+                    fila.style.setProperty('display', '', 'important');
+                } else {
+                    fila.style.setProperty('display', 'none', 'important');
+                }
+            });
+        });
+    }
+});
+</script>
 
 {% endblock %}

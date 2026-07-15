@@ -1,16 +1,16 @@
-{% extends "core/base.html" %}
-{% block title %}Relaciones — MediKnow{% endblock %}
-{% block content %}
+{% extends 'core/base.html' %}
 
-<header class="page-header">
-  <h1>Relaciones Enfermedad ↔ Síntoma / Tratamiento</h1>
-  <p>Define el peso de asociación y las condiciones formales de aplicación.</p>
+{% block content %}
+<header class="main-header" style="margin-bottom: 2rem;">
+  <h1>Consulta de Relaciones: Enfermedad ↔ Síntoma / Tratamiento</h1>
+  <p>Selecciona una patología para visualizar de forma directa sus manifestaciones clínicas y alternativas terapéuticas.</p>
 </header>
 
-<form method="get" class="form-card" style="grid-template-columns: 1fr; margin-bottom:1.5rem;">
+<!-- Selector de Enfermedad -->
+<form method="get" class="form-card" style="grid-template-columns: 1fr; margin-bottom: 2rem; padding: 1.5rem;">
   <div class="field-group">
-    <label for="id_disease">Selecciona una enfermedad</label>
-    <select id="id_disease" name="disease" onchange="this.form.submit()">
+    <label for="id_disease" style="font-weight: bold; font-size: 1.1rem; margin-bottom: 0.5rem; display: block;">SELECCIONA UNA ENFERMEDAD</label>
+    <select id="id_disease" name="disease" onchange="this.form.submit()" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #ccc; font-size: 1rem;">
       <option value="">— Elegir —</option>
       {% for d in diseases %}
       <option value="{{ d.pk }}" {% if disease and disease.pk == d.pk %}selected{% endif %}>{{ d.name }}</option>
@@ -19,86 +19,67 @@
   </div>
 </form>
 
-{% if success %}<div class="alert-success">{{ success }}</div>{% endif %}
-{% if errors.symptom %}<div class="alert-warning">{{ errors.symptom }}</div>{% endif %}
-{% if errors.treatment %}<div class="alert-warning">{{ errors.treatment }}</div>{% endif %}
-
 {% if disease %}
-<section class="results-section">
-  <h2>Síntomas asociados a "{{ disease.name }}"</h2>
-  <table class="data-table" style="margin-bottom:1.5rem;">
-    <thead><tr><th>Síntoma</th><th>Peso</th><th>Notas</th></tr></thead>
-    <tbody>
-      {% for rel in symptom_relations %}
-      <tr><td>{{ rel.symptom.name }}</td><td>{{ rel.association_weight }}</td><td>{{ rel.notes|default:"—" }}</td></tr>
-      {% empty %}
-      <tr><td colspan="3">Sin síntomas asociados aún.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<!-- Panel de Información de Dos Columnas -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 1rem;">
+  
+  <!-- Columna Izquierda: Síntomas Frecuentes -->
+  <div class="form-card" style="padding: 1.5rem; border-left: 5px solid #007bff; background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-radius: 8px;">
+    <h3 style="margin-top: 0; color: #007bff; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+      <span style="font-size: 1.5rem;">🩺</span> Síntomas Frecuentes
+    </h3>
+    
+    {% if associated_symptoms %}
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        {% for rel in associated_symptoms %}
+          <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px; border: 1px solid #e9ecef;">
+            <strong style="color: #333; font-size: 1.1rem;">{{ rel.symptom.name }}</strong>
+            {% if rel.association_weight %}
+              <div style="margin-top: 0.25rem;"><span style="font-size: 0.85rem; background: #e2e8f0; padding: 2px 8px; border-radius: 12px; color: #4a5568;">Peso: {{ rel.association_weight }}</span></div>
+            {% endif %}
+            {% if rel.notes %}
+              <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: #666; font-style: italic;">Nota: {{ rel.notes }}</p>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p style="color: #777; font-style: italic;">No hay síntomas registrados o asociados para esta enfermedad aún.</p>
+    {% endif %}
+  </div>
 
-  <form method="post" class="form-card">
-    {% csrf_token %}
-    <input type="hidden" name="disease_id" value="{{ disease.pk }}">
-    <input type="hidden" name="relation_type" value="symptom">
-    <div class="field-group">
-      <label for="id_symptom">Síntoma</label>
-      <select id="id_symptom" name="symptom_id" required>
-        {% for s in available_symptoms %}<option value="{{ s.pk }}">{{ s.name }}</option>{% endfor %}
-      </select>
-    </div>
-    <div class="field-group">
-      <label for="id_weight">Peso de asociación</label>
-      <select id="id_weight" name="association_weight">
-        {% for value, label in weight_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
-      </select>
-    </div>
-    <div class="field-group" style="grid-column: 1 / -1;">
-      <label for="id_notes">Notas</label>
-      <input type="text" id="id_notes" name="notes">
-    </div>
-    <div style="grid-column: 1 / -1;">
-      <button type="submit" class="btn-diagnose">Asociar síntoma</button>
-    </div>
-  </form>
+  <!-- Columna Derecha: Tratamientos -->
+  <div class="form-card" style="padding: 1.5rem; border-left: 5px solid #28a745; background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-radius: 8px;">
+    <h3 style="margin-top: 0; color: #28a745; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+      <span style="font-size: 1.5rem;">💊</span> Tratamientos Sugeridos
+    </h3>
+    
+    {% if associated_treatments %}
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        {% for rel in associated_treatments %}
+          <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px; border: 1px solid #e9ecef;">
+            <strong style="color: #333; font-size: 1.1rem;">{{ rel.treatment.name }}</strong>
+            {% if rel.priority %}
+              <div style="margin-top: 0.25rem;"><span style="font-size: 0.85rem; background: #d4edda; padding: 2px 8px; border-radius: 12px; color: #155724;">Prioridad: {{ rel.priority }}</span></div>
+            {% endif %}
+            {% if rel.notes or rel.conditions %}
+              <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: #666; font-style: italic;">
+                {% if rel.conditions %}Condiciones: {{ rel.conditions }}{% else %}Nota: {{ rel.notes }}{% endif %}
+              </p>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p style="color: #777; font-style: italic;">No hay tratamientos registrados o asociados para esta enfermedad aún.</p>
+    {% endif %}
+  </div>
 
-  <h2 style="margin-top:2rem;">Tratamientos asociados a "{{ disease.name }}"</h2>
-  <table class="data-table" style="margin-bottom:1.5rem;">
-    <thead><tr><th>Tratamiento</th><th>Prioridad</th><th>Condiciones</th></tr></thead>
-    <tbody>
-      {% for rel in treatment_relations %}
-      <tr><td>{{ rel.treatment.name }}</td><td>{{ rel.priority }}</td><td>{{ rel.formal_conditions|truncatewords:12 }}</td></tr>
-      {% empty %}
-      <tr><td colspan="3">Sin tratamientos asociados aún.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  <form method="post" class="form-card">
-    {% csrf_token %}
-    <input type="hidden" name="disease_id" value="{{ disease.pk }}">
-    <input type="hidden" name="relation_type" value="treatment">
-    <div class="field-group">
-      <label for="id_treatment">Tratamiento</label>
-      <select id="id_treatment" name="treatment_id" required>
-        {% for t in available_treatments %}<option value="{{ t.pk }}">{{ t.name }}</option>{% endfor %}
-      </select>
-    </div>
-    <div class="field-group">
-      <label for="id_priority">Prioridad</label>
-      <input type="number" id="id_priority" name="priority" value="1" min="1">
-    </div>
-    <div class="field-group" style="grid-column: 1 / -1;">
-      <label for="id_formal_conditions">Condiciones formales</label>
-      <textarea id="id_formal_conditions" name="formal_conditions" rows="2" required></textarea>
-    </div>
-    <div style="grid-column: 1 / -1;">
-      <button type="submit" class="btn-diagnose">Asociar tratamiento</button>
-    </div>
-  </form>
-</section>
+</div>
 {% else %}
-<p style="color:var(--gray-600);">Selecciona una enfermedad arriba para gestionar sus relaciones.</p>
+<div class="form-card" style="text-align: center; padding: 3rem; color: #6c757d;">
+  <span style="font-size: 3rem; display: block; margin-bottom: 1rem;">🔍</span>
+  <p style="font-size: 1.1rem; margin: 0;">Por favor, selecciona una enfermedad arriba para visualizar su cuadro clínico y recomendaciones.</p>
+</div>
 {% endif %}
-
 {% endblock %}
